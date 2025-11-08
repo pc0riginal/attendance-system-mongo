@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Devotees - Temple Attendance{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="bi bi-people"></i> <span class="d-none d-sm-inline">Devotees</span></h4>
+    <a href="{% url 'devotee_add' %}" class="btn btn-temple btn-sm">
+        <i class="bi bi-plus"></i> Add
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if devotees %}
+            <!-- Mobile Cards -->
+            <div class="d-block d-md-none">
+                {% for devotee in devotees %}
+                    <div class="card mb-3">
+                        <div class="card-body p-3">
+                            <!-- Photo and Name Row -->
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="me-3">
+                                    {% if devotee.photo_url %}
+                                        <img src="{{ devotee.photo_url }}" alt="{{ devotee.name }}" 
+                                             class="rounded-circle" width="60" height="60" 
+                                             style="object-fit: cover;" 
+                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                        <div class="rounded-circle bg-light d-none align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="bi bi-person text-muted fs-4"></i>
+                                        </div>
+                                    {% else %}
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                            <i class="bi bi-person text-muted fs-4"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h5 class="mb-1 fw-semibold">{{ devotee.name }}</h5>
+                                    <span class="badge bg-light text-dark">{{ devotee.get_sabha_type_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Details Grid -->
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-telephone text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Phone</small>
+                                            <small class="fw-medium">{{ devotee.contact_number }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-person-badge text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Age</small>
+                                            <small class="fw-medium">{{ devotee.age_group|default:"N/A" }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-calendar-plus text-primary me-2"></i>
+                                        <div>
+                                            <small class="text-muted d-block">Joined</small>
+                                            <small class="fw-medium">{{ devotee.join_date }}</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'devotee_detail' devotee.pk %}" class="btn btn-temple btn-sm flex-fill d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-eye me-1"></i>View
+                                </a>
+                                <a href="{% url 'devotee_edit' devotee.pk %}" class="btn btn-outline-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
+                                    <i class="bi bi-edit me-1"></i>Edit
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Desktop Table -->
+            <div class="d-none d-md-block">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Photo</th>
+                                <th>Name</th>
+                                <th>Contact</th>
+                                <th>Sabha Type</th>
+                                <th>Age Group</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for devotee in devotees %}
+                                <tr>
+                                    <td>
+                                        {% if devotee.photo_url %}
+                                            <img src="{{ devotee.photo_url }}" alt="{{ devotee.name }}" 
+                                                 class="rounded-circle" width="40" height="40" 
+                                                 style="object-fit: cover;" 
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="rounded-circle bg-light d-none align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="bi bi-person text-muted"></i>
+                                            </div>
+                                        {% else %}
+                                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                <i class="bi bi-person text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ devotee.name }}</td>
+                                    <td>{{ devotee.contact_number }}</td>
+                                    <td>{{ devotee.get_sabha_type_display }}</td>
+                                    <td>{{ devotee.age_group }}</td>
+                                    <td>
+                                        <div class="d-flex gap-2">
+                                            <a href="{% url 'devotee_detail' devotee.pk %}" class="btn btn-sm btn-temple d-flex align-items-center justify-content-center" style="width: 70px;">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                            <a href="{% url 'devotee_edit' devotee.pk %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 70px;">
+                                                <i class="bi bi-edit"></i> Edit
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No devotees found. <a href="{% url 'devotee_add' %}">Add the first devotee</a>.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load attendance_tags %}
+
+{% block title %}Mark Attendance - Temple Attendance{% endblock %}
+
+{% block content %}
+<div class="mb-4" data-aos="fade-down">
+    <h2 class="fw-bold mb-3"><i class="bi bi-check-circle text-success"></i> Mark Attendance</h2>
+    <div class="card">
+        <div class="card-body p-4">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="fw-semibold mb-2">{{ sabha.get_sabha_type_display }}</h5>
+                    <div class="row text-muted small">
+                        <div class="col-sm-4 mb-1">
+                            <i class="bi bi-calendar3 me-2"></i>{{ sabha.date }}
+                        </div>
+                        <div class="col-sm-4 mb-1">
+                            <i class="bi bi-clock me-2"></i>{{ sabha.start_time }} - {{ sabha.end_time }}
+                        </div>
+                        <div class="col-sm-4 mb-1">
+                            <i class="bi bi-geo-alt me-2"></i>{{ sabha.location }}
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <span class="badge bg-light text-dark px-3 py-2 fs-6">{{ devotees|length }} Devotees</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            {% if devotees %}
+                <!-- Mobile Cards -->
+                <div class="d-block d-lg-none">
+                    {% for devotee in devotees %}
+                        <div class="card mb-3" data-aos="fade-up" data-aos-delay="{% cycle '50' '100' '150' '200' '250' %}">
+                            <div class="card-body p-4">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="me-3">
+                                        {% if devotee.photo_url %}
+                                            <img src="{{ devotee.photo_url }}" alt="{{ devotee.name }}" 
+                                                 class="rounded-circle" width="60" height="60" 
+                                                 style="object-fit: cover;" 
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                            <div class="bg-light rounded-circle d-none align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-person fs-5"></i>
+                                            </div>
+                                        {% else %}
+                                            <div class="bg-light rounded-circle d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                <i class="bi bi-person fs-5"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <h6 class="fw-semibold mb-1">{{ devotee.name }}</h6>
+                                        <small class="text-muted d-block">{{ devotee.contact_number }}</small>
+                                        <small class="text-muted">{{ devotee.get_sabha_type_display }}</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Status Toggle Buttons -->
+                                <div class="btn-group w-100 mb-3" role="group">
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="present_{{ devotee.id }}" value="present" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'present' %}checked{% endif %}{% endwith %}>
+                                    <label class="btn btn-outline-success" for="present_{{ devotee.id }}">
+                                        <i class="bi bi-check-circle"></i> Present
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="late_{{ devotee.id }}" value="late" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'late' %}checked{% endif %}{% endwith %}>
+                                    <label class="btn btn-outline-warning" for="late_{{ devotee.id }}">
+                                        <i class="bi bi-clock"></i> Late
+                                    </label>
+                                    
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="absent_{{ devotee.id }}" value="absent" {% with existing_attendance|get_item:devotee.id as attendance %}{% if not attendance or attendance.status == 'absent' %}checked{% endif %}{% endwith %}>
+                                    <label class="btn btn-outline-danger" for="absent_{{ devotee.id }}">
+                                        <i class="bi bi-x-circle"></i> Absent
+                                    </label>
+                                </div>
+                                
+                                <input type="text" name="notes_{{ devotee.id }}" class="form-control" 
+                                       value="{% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance %}{{ attendance.notes }}{% endif %}{% endwith %}" 
+                                       placeholder="Add notes (optional)">
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Desktop Table -->
+                <div class="d-none d-md-block">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Photo</th>
+                                    <th>Devotee Name</th>
+                                    <th>Contact</th>
+                                    <th>Status</th>
+                                    <th>Notes</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for devotee in devotees %}
+                                    <tr>
+                                        <td>
+                                            {% if devotee.photo_url %}
+                                                <img src="{{ devotee.photo_url }}" alt="{{ devotee.name }}" 
+                                                     class="rounded-circle" width="40" height="40" 
+                                                     style="object-fit: cover;" 
+                                                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                                                <div class="rounded-circle bg-light d-none align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-person text-muted"></i>
+                                                </div>
+                                            {% else %}
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                    <i class="bi bi-person text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ devotee.name }}</td>
+                                        <td>{{ devotee.contact_number }}</td>
+                                        <td>
+                                            <select name="status_{{ devotee.id }}" class="form-select form-select-sm">
+                                                {% with existing_attendance|get_item:devotee.id as attendance %}
+                                                <option value="absent" {% if not attendance or attendance.status == 'absent' %}selected{% endif %}>Absent</option>
+                                                <option value="present" {% if attendance.status == 'present' %}selected{% endif %}>Present</option>
+                                                <option value="late" {% if attendance.status == 'late' %}selected{% endif %}>Late</option>
+                                                {% endwith %}
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <input type="text" name="notes_{{ devotee.id }}" class="form-control form-control-sm" 
+                                                   value="{% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance %}{{ attendance.notes }}{% endif %}{% endwith %}" 
+                                                   placeholder="Optional notes">
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="d-flex flex-column flex-sm-row justify-content-between gap-2 mt-3">
+                    <a href="{% url 'sabha_list' %}" class="btn btn-secondary">Back to Sabhas</a>
+                    <button type="submit" class="btn btn-temple">Save Attendance</button>
+                </div>
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">No devotees found for this sabha type.</p>
+                    <a href="{% url 'devotee_add' %}" class="btn btn-temple">Add Devotees</a>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<script>
+// Quick mark all present/absent buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const toolbar = document.createElement('div');
+    toolbar.className = 'mb-3';
+    toolbar.innerHTML = `
+        <div class="d-flex flex-wrap gap-2 mb-4">
+            <button type="button" class="btn btn-success" onclick="markAll('present')">
+                <i class="bi bi-check-circle"></i> Mark All Present
+            </button>
+            <button type="button" class="btn btn-warning" onclick="markAll('late')">
+                <i class="bi bi-clock"></i> Mark All Late
+            </button>
+            <button type="button" class="btn btn-danger" onclick="markAll('absent')">
+                <i class="bi bi-x-circle"></i> Mark All Absent
+            </button>
+        </div>
+    `;
+    document.querySelector('form').prepend(toolbar);
+});
+
+function markAll(status) {
+    // Handle radio buttons (mobile)
+    const radios = document.querySelectorAll(`input[value="${status}"]`);
+    radios.forEach(radio => {
+        if (radio.name.startsWith('status_')) {
+            radio.checked = true;
+        }
+    });
+    
+    // Handle select dropdowns (desktop)
+    const selects = document.querySelectorAll('select[name^="status_"]');
+    selects.forEach(select => {
+        select.value = status;
+    });
+}
+</script>
+{% endblock %}

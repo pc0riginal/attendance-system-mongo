@@ -1,0 +1,1 @@
+web: gunicorn temple_attendance.wsgi --log-file -

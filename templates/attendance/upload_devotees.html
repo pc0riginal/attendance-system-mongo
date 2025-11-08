@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Devotees - Temple Attendance{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-bg py-5 mb-5">
+    <div class="container" data-aos="fade-up">
+        <div class="row">
+            <div class="col-lg-8">
+                <h1 class="display-4 fw-bold mb-3">
+                    <i class="bi bi-cloud-upload text-primary me-3"></i>
+                    Upload <span style="background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Devotees</span>
+                </h1>
+                <p class="lead text-muted mb-4">Import devotee data from Excel files with photo URLs and automatic validation.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Upload Form Card -->
+            <div class="card mb-4" data-aos="fade-up">
+                <div class="card-header">
+                    <h5><i class="bi bi-file-earmark-spreadsheet me-2"></i>Excel File Upload</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="{{ form.excel_file.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.excel_file.label }}
+                            </label>
+                            {{ form.excel_file }}
+                            <div class="form-text">{{ form.excel_file.help_text }}</div>
+                            {% if form.excel_file.errors %}
+                                <div class="text-danger mt-2">
+                                    {% for error in form.excel_file.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.sabha_type_filter.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.sabha_type_filter.label }}
+                            </label>
+                            {{ form.sabha_type_filter }}
+                            <div class="form-text">Optional: Filter to import only specific sabha type</div>
+                        </div>
+
+                        <div class="d-flex flex-column flex-sm-row gap-3">
+                            <button type="submit" class="btn btn-temple">
+                                <i class="bi bi-upload me-2"></i>Upload & Validate
+                            </button>
+                            <a href="{% url 'devotee_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-2"></i>Back to Devotees
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Excel Format Guide -->
+            <div class="card mb-4" data-aos="fade-up" data-aos-delay="100">
+                <div class="card-header">
+                    <h5><i class="bi bi-info-circle me-2"></i>Excel Format Requirements</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">Your Excel file should contain the following columns:</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Column Name</th>
+                                    <th>Required</th>
+                                    <th>Description</th>
+                                    <th>Example</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><code>name</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>Full name of devotee</td>
+                                    <td>Ravi Patel</td>
+                                </tr>
+                                <tr>
+                                    <td><code>contact_number</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>Phone number (10+ digits)</td>
+                                    <td>9876543210</td>
+                                </tr>
+                                <tr>
+                                    <td><code>sabha_type</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>bal, yuvak, mahila, or sanyukt</td>
+                                    <td>yuvak</td>
+                                </tr>
+                                <tr>
+                                    <td><code>photo_url</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>Google Drive or image URL</td>
+                                    <td>https://drive.google.com/...</td>
+                                </tr>
+                                <tr>
+                                    <td><code>age_group</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>Age range</td>
+                                    <td>25-35</td>
+                                </tr>
+                                <tr>
+                                    <td><code>address</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>Full address</td>
+                                    <td>123 Temple Street</td>
+                                </tr>
+                                <tr>
+                                    <td><code>join_date</code></td>
+                                    <td><span class="badge bg-secondary">Optional</span></td>
+                                    <td>Date in YYYY-MM-DD format</td>
+                                    <td>2024-01-15</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Validation Errors -->
+            {% if errors %}
+            <div class="card border-danger mb-4" data-aos="fade-up" data-aos-delay="200">
+                <div class="card-header bg-danger text-white">
+                    <h5><i class="bi bi-exclamation-triangle me-2"></i>Validation Errors Found</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-danger">
+                        <strong>{{ error_count }}</strong> rows have errors out of <strong>{{ total_rows }}</strong> total rows.
+                        Please fix the errors below and re-upload the file.
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Row #</th>
+                                    <th>Name</th>
+                                    <th>Phone</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for error in errors %}
+                                <tr>
+                                    <td><span class="badge bg-danger">{{ error.row }}</span></td>
+                                    <td>{{ error.data.name|default:"-" }}</td>
+                                    <td>{{ error.data.contact_number|default:"-" }}</td>
+                                    <td>
+                                        {% for err in error.errors %}
+                                            <span class="badge bg-warning text-dark me-1">{{ err }}</span>
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Success Summary -->
+            {% if valid_count and not errors %}
+            <div class="card border-success" data-aos="fade-up" data-aos-delay="200">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="bi bi-check-circle me-2"></i>Validation Successful</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success">
+                        <strong>{{ valid_count }}</strong> rows are ready to be imported!
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
