@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-k8#m9@x7v2$n4p!q6w8e+r5t7y9u=i1o3p5a7s9d1f3g5h7j9k2l4n6m8b0v2c4x6z8')
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
+DEBUG = True  # Temporarily enabled for debugging
 
 ALLOWED_HOSTS = ['*']
 
@@ -91,6 +91,28 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
 
 # Production security settings
 if not DEBUG:
