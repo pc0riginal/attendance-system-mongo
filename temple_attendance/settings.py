@@ -3,11 +3,17 @@ import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-temple-attendance-key-change-in-production')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-k8#m9@x7v2$n4p!q6w8e+r5t7y9u=i1o3p5a7s9d1f3g5h7j9k2l4n6m8b0v2c4x6z8')
 
 DEBUG = os.environ.get('DEBUG', 'True').lower() == 'true'
 
 ALLOWED_HOSTS = ['*']
+
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = [
+    'http://*',
+    'https://*',
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -85,3 +91,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Production security settings
+if not DEBUG:
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
