@@ -43,7 +43,7 @@
                                     <a href="{% url 'mark_attendance' sabha.id %}" class="btn btn-temple btn-sm">
                                         <i class="bi bi-check-circle"></i>
                                     </a>
-                                    <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
+                                    <button class="btn btn-temple btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
@@ -80,7 +80,7 @@
                                             <a href="{% url 'mark_attendance' sabha.id %}" class="btn btn-temple btn-sm">
                                                 <i class="bi bi-check-circle"></i> Mark
                                             </a>
-                                            <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
+                                            <button class="btn btn-temple btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
                                                 <i class="bi bi-trash"></i> Delete
                                             </button>
                                         </div>

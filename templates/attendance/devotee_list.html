@@ -87,13 +87,13 @@
                             <!-- Action Buttons -->
                             <div class="d-flex gap-2">
                                 <a href="{% url 'devotee_detail' devotee.id %}" class="btn btn-temple btn-sm flex-fill d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-eye me-1"></i>View
+                                    <i class="bi bi-eye"></i>
                                 </a>
                                 <a href="{% url 'devotee_edit' devotee.id %}" class="btn btn-outline-primary btn-sm flex-fill d-flex align-items-center justify-content-center">
-                                    <i class="bi bi-edit me-1"></i>Edit
+                                    <i class="bi bi-edit"></i>
                                 </a>
                                 <button class="btn btn-outline-danger btn-sm flex-fill" onclick="confirmDelete('devotee', '{{ devotee.id }}', '{{ devotee.name }}')">
-                                    <i class="bi bi-trash me-1"></i>Delete
+                                    <i class="bi bi-trash"></i>
                                 </button>
                             </div>
                         </div>
@@ -138,15 +138,15 @@
                                     <td>{{ devotee.get_sabha_type_display }}</td>
                                     <td>{{ devotee.age_group }}</td>
                                     <td>
-                                        <div class="d-flex gap-1">
-                                            <a href="{% url 'devotee_detail' devotee.id %}" class="btn btn-sm btn-temple d-flex align-items-center justify-content-center" style="width: 55px;">
-                                                <i class="bi bi-eye"></i> View
+                                        <div class="d-flex gap-1 align-items-center">
+                                            <a href="{% url 'devotee_detail' devotee.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 32px;">
+                                                <i class="bi bi-eye"></i>
                                             </a>
-                                            <a href="{% url 'devotee_edit' devotee.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 55px;">
-                                                <i class="bi bi-edit"></i> Edit
+                                            <a href="{% url 'devotee_edit' devotee.id %}" class="btn btn-sm btn-outline-primary d-flex align-items-center justify-content-center" style="width: 40px; height: 32px;">
+                                                <i class="bi bi-pencil"></i>
                                             </a>
-                                            <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="width: 55px;" onclick="confirmDelete('devotee', '{{ devotee.id }}', '{{ devotee.name }}')">
-                                                <i class="bi bi-trash"></i> Del
+                                            <button class="btn btn-sm btn-outline-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 32px;" onclick="confirmDelete('devotee', '{{ devotee.id }}', '{{ devotee.name }}')">
+                                                <i class="bi bi-trash"></i>
                                             </button>
                                         </div>
                                     </td>
@@ -255,9 +255,9 @@ function updateDevoteeList(data) {
                     </div>
                 </div>
                 <div class="d-flex gap-2">
-                    <a href="/devotees/${devotee.id}/" class="btn btn-temple btn-sm flex-fill"><i class="bi bi-eye me-1"></i>View</a>
-                    <a href="/devotees/edit/${devotee.id}/" class="btn btn-outline-primary btn-sm flex-fill"><i class="bi bi-edit me-1"></i>Edit</a>
-                    <button class="btn btn-outline-danger btn-sm flex-fill" onclick="confirmDelete('devotee', '${devotee.id}', '${devotee.name}')"><i class="bi bi-trash me-1"></i>Delete</button>
+                    <a href="/devotees/${devotee.id}/" class="btn btn-temple btn-sm flex-fill"><i class="bi bi-eye"></i></a>
+                    <a href="/devotees/edit/${devotee.id}/" class="btn btn-outline-primary btn-sm flex-fill"><i class="bi bi-edit"></i></a>
+                    <button class="btn btn-outline-danger btn-sm flex-fill" onclick="confirmDelete('devotee', '${devotee.id}', '${devotee.name}')"><i class="bi bi-trash"></i></button>
                 </div>
             </div>
         `;
@@ -277,9 +277,9 @@ function updateDevoteeList(data) {
             <td>${devotee.age_group}</td>
             <td>
                 <div class="d-flex gap-2">
-                    <a href="/devotees/${devotee.id}/" class="btn btn-sm btn-temple"><i class="bi bi-eye"></i> View</a>
-                    <a href="/devotees/edit/${devotee.id}/" class="btn btn-sm btn-outline-primary"><i class="bi bi-edit"></i> Edit</a>
-                    <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete('devotee', '${devotee.id}', '${devotee.name}')"><i class="bi bi-trash"></i> Del</button>
+                    <a href="/devotees/${devotee.id}/" class="btn btn-sm btn-outline-primary" style="width: 40px; height: 32px;"><i class="bi bi-eye"></i></a>
+                    <a href="/devotees/edit/${devotee.id}/" class="btn btn-sm btn-outline-primary" style="width: 40px; height: 32px;"><i class="bi bi-pencil"></i></a>
+                    <button class="btn btn-sm btn-outline-danger" style="width: 40px; height: 32px;" onclick="confirmDelete('devotee', '${devotee.id}', '${devotee.name}')"><i class="bi bi-trash"></i></button>
                 </div>
             </td>
         `;
