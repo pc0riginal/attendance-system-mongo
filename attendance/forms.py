@@ -2,17 +2,29 @@ from django import forms
 from .models import Devotee, Sabha, Attendance
 
 class DevoteeForm(forms.ModelForm):
+    photo = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*',
+            'capture': 'camera'
+        })
+    )
+    
     class Meta:
         model = Devotee
-        fields = ['name', 'contact_number', 'age_group', 'sabha_type', 'address', 'photo_url', 'join_date']
+        fields = ['name', 'contact_number', 'date_of_birth', 'gender', 'age', 'sabha_type', 'address_line', 'landmark', 'zone', 'join_date']
         widgets = {
             'join_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'date_of_birth': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'contact_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'age_group': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-control'}),
+            'age': forms.NumberInput(attrs={'class': 'form-control', 'readonly': True}),
             'sabha_type': forms.Select(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
-            'photo_url': forms.URLInput(attrs={'class': 'form-control', 'placeholder': 'https://example.com/photo.jpg'}),
+            'address_line': forms.TextInput(attrs={'class': 'form-control'}),
+            'landmark': forms.TextInput(attrs={'class': 'form-control'}),
+            'zone': forms.TextInput(attrs={'class': 'form-control'}),
         }
 
 class SabhaForm(forms.ModelForm):

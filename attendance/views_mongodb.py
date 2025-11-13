@@ -138,17 +138,51 @@ def devotee_list(request):
 @login_required
 def devotee_add(request):
     if request.method == 'POST':
+        from .dropbox_utils import upload_devotee_photo
+        
         devotee_data = {
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
-            'age_group': request.POST.get('age_group'),
+            'date_of_birth': request.POST.get('date_of_birth'),
+            'gender': request.POST.get('gender'),
+            'age': int(request.POST.get('age', 0)),
             'sabha_type': request.POST.get('sabha_type'),
-            'address': request.POST.get('address'),
+            'address_line': request.POST.get('address_line'),
+            'landmark': request.POST.get('landmark'),
+            'zone': request.POST.get('zone'),
             'join_date': request.POST.get('join_date'),
-            'photo_url': request.POST.get('photo_url', ''),
+            'photo_url': '',
             'created_at': datetime.now().isoformat()
         }
-        devotees_db.insert_one(devotee_data)
+        
+        # Handle photo upload
+        if request.POST.get('cropped_photo'):
+            # Handle cropped photo from base64
+            import base64
+            from io import BytesIO
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            
+            cropped_data = request.POST.get('cropped_photo')
+            format, imgstr = cropped_data.split(';base64,')
+            ext = format.split('/')[-1]
+            
+            data = base64.b64decode(imgstr)
+            photo_file = InMemoryUploadedFile(
+                BytesIO(data), None, f'cropped_photo.{ext}', f'image/{ext}', len(data), None
+            )
+            
+            photo_url = upload_devotee_photo(photo_file, devotee_data)
+            if photo_url:
+                devotee_data['photo_url'] = photo_url
+        elif 'photo' in request.FILES:
+            # Handle regular photo upload
+            photo_file = request.FILES['photo']
+            photo_url = upload_devotee_photo(photo_file, devotee_data)
+            if photo_url:
+                devotee_data['photo_url'] = photo_url
+        
+        result = devotees_db.insert_one(devotee_data)
+        
         messages.success(request, 'Devotee added successfully!')
         return redirect('devotee_list')
     
@@ -173,17 +207,53 @@ def devotee_edit(request, pk):
         return redirect('devotee_list')
     
     if request.method == 'POST':
+        from .dropbox_utils import upload_devotee_photo
+        
         update_data = {
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
-            'age_group': request.POST.get('age_group'),
+            'date_of_birth': request.POST.get('date_of_birth'),
+            'gender': request.POST.get('gender'),
+            'age': int(request.POST.get('age', 0)),
             'sabha_type': request.POST.get('sabha_type'),
-            'address': request.POST.get('address'),
+            'address_line': request.POST.get('address_line'),
+            'landmark': request.POST.get('landmark'),
+            'zone': request.POST.get('zone'),
             'join_date': request.POST.get('join_date'),
-            'photo_url': request.POST.get('photo_url', ''),
+            'photo_url': devotee.get('photo_url', ''),
             'updated_at': datetime.now().isoformat()
         }
-        devotees_db.update_one({'_id': ObjectId(pk)}, update_data)
+        
+        # Handle photo upload
+        if request.POST.get('cropped_photo'):
+            # Handle cropped photo from base64
+            import base64
+            from io import BytesIO
+            from django.core.files.uploadedfile import InMemoryUploadedFile
+            
+            cropped_data = request.POST.get('cropped_photo')
+            format, imgstr = cropped_data.split(';base64,')
+            ext = format.split('/')[-1]
+            
+            data = base64.b64decode(imgstr)
+            photo_file = InMemoryUploadedFile(
+                BytesIO(data), None, f'cropped_photo.{ext}', f'image/{ext}', len(data), None
+            )
+            
+            photo_url = upload_devotee_photo(photo_file, update_data)
+            if photo_url:
+                update_data['photo_url'] = photo_url
+        elif 'photo' in request.FILES:
+            # Handle regular photo upload
+            photo_file = request.FILES['photo']
+            photo_url = upload_devotee_photo(photo_file, update_data)
+            if photo_url:
+                update_data['photo_url'] = photo_url
+        
+        update_result = devotees_db.update_one({'_id': ObjectId(pk)}, update_data)
+        print(f"Database update result: {update_result.modified_count} documents modified")
+        print(f"Final photo_url in update_data: {update_data.get('photo_url')}")
+        
         messages.success(request, 'Devotee updated successfully!')
         return redirect('devotee_detail', pk=pk)
     

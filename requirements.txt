@@ -1,6 +1,6 @@
-Django>=4.2
-pandas
-openpyxl
-whitenoise
-pymongo[srv]>=4.0
-dnspython
+Django==5.0.1
+pymongo==4.6.1
+python-decouple==3.8
+openpyxl==3.1.2
+pandas==2.2.0
+dropbox==12.0.2
