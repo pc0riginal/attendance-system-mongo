@@ -19,41 +19,84 @@
         }
         
         [data-theme="dark"] {
-            --white-lilac: #1a1a1a;
+            --white-lilac: #121212;
             --dark-blue: #ffffff;
         }
         
         [data-theme="dark"] body {
-            background-color: #121212;
-            color: #ffffff;
+            background-color: #121212 !important;
+            color: #ffffff !important;
         }
         
         [data-theme="dark"] .card {
-            background: #1e1e1e;
-            color: #ffffff;
+            background: #1e1e1e !important;
+            color: #ffffff !important;
+            border-color: #333 !important;
         }
         
         [data-theme="dark"] .navbar {
             background: rgba(30, 30, 30, 0.95) !important;
         }
         
-        [data-theme="dark"] .bottom-tab-bar {
-            background: #1e1e1e;
-            border-top-color: #333;
+        [data-theme="dark"] .navbar-brand,
+        [data-theme="dark"] .nav-link {
+            color: #ffffff !important;
         }
         
-        [data-theme="dark"] .form-control, [data-theme="dark"] .form-select {
-            background: #2a2a2a;
-            border-color: #444;
-            color: #ffffff;
+        [data-theme="dark"] .bottom-tab-bar {
+            background: #1e1e1e !important;
+            border-top-color: #333 !important;
+        }
+        
+        [data-theme="dark"] .bottom-tab {
+            color: #ccc !important;
+        }
+        
+        [data-theme="dark"] .bottom-tab.active,
+        [data-theme="dark"] .bottom-tab:hover {
+            color: #6C63FF !important;
+        }
+        
+        [data-theme="dark"] .form-control, 
+        [data-theme="dark"] .form-select {
+            background: #2a2a2a !important;
+            border-color: #444 !important;
+            color: #ffffff !important;
+        }
+        
+        [data-theme="dark"] .form-control:focus,
+        [data-theme="dark"] .form-select:focus {
+            background: #2a2a2a !important;
+            border-color: #6C63FF !important;
+            color: #ffffff !important;
         }
         
         [data-theme="dark"] .table {
-            color: #ffffff;
+            color: #ffffff !important;
         }
         
         [data-theme="dark"] .table thead th {
-            background-color: rgba(108, 99, 255, 0.2);
+            background-color: rgba(108, 99, 255, 0.2) !important;
+            color: #ffffff !important;
+        }
+        
+        [data-theme="dark"] .table tbody td {
+            border-color: #333 !important;
+        }
+        
+        [data-theme="dark"] .badge.bg-light {
+            background: #333 !important;
+            color: #ffffff !important;
+        }
+        
+        [data-theme="dark"] .text-muted {
+            color: #ccc !important;
+        }
+        
+        [data-theme="dark"] .alert {
+            background: #2a2a2a !important;
+            border-color: #444 !important;
+            color: #ffffff !important;
         }
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--white-lilac); color: var(--dark-blue); line-height: 1.6; font-size: 16px; }
@@ -417,13 +460,26 @@
         }
     }
     
-    // Load saved theme
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        document.getElementById('theme-icon').className = 'bi bi-sun-fill';
-        document.getElementById('theme-text').textContent = 'Light';
-    }
+    // Load saved theme immediately
+    (function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    })();
+    
+    // Update button after DOM loads
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            const icon = document.getElementById('theme-icon');
+            const text = document.getElementById('theme-text');
+            if (icon && text) {
+                icon.className = 'bi bi-sun-fill';
+                text.textContent = 'Light';
+            }
+        }
+    });
     </script>
 </body>
 </html>
