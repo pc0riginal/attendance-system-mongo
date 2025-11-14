@@ -118,6 +118,7 @@ def devotee_list(request):
                 'contact_number': d['contact_number'],
                 'sabha_type_display': d['sabha_type'].title(),
                 'devotee_type': d.get('devotee_type', ''),
+                'contact_number': d['contact_number'],
                 'join_date': d['join_date'],
                 'photo_url': photo_url
             })

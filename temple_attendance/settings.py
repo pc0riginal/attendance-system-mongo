@@ -1,13 +1,14 @@
 from pathlib import Path
 import os
+from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-k8#m9@x7v2$n4p!q6w8e+r5t7y9u=i1o3p5a7s9d1f3g5h7j9k2l4n6m8b0v2c4x6z8')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-k8#m9@x7v2$n4p!q6w8e+r5t7y9u=i1o3p5a7s9d1f3g5h7j9k2l4n6m8b0v2c4x6z8')
 
-DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['*','https://*.koyeb.app']
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1', cast=lambda v: [s.strip() for s in v.split(',')])
 
 # CSRF settings for production
 CSRF_TRUSTED_ORIGINS = [
@@ -59,8 +60,8 @@ TEMPLATES = [
 WSGI_APPLICATION = 'temple_attendance.wsgi.application'
 
 # MongoDB Configuration
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://msm98:paras123@cluster0.4gnmc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
-MONGODB_NAME = os.environ.get('MONGODB_NAME', 'temple_attendance')
+MONGODB_URI = config('MONGODB_URI', default='mongodb+srv://msm98:paras123@cluster0.4gnmc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+MONGODB_NAME = config('MONGODB_NAME', default='temple_attendance')
 
 # MongoDB Client will be initialized in mongodb_utils.py
 
@@ -130,11 +131,13 @@ LOGGING = {
     },
 }
 
-# Production security settings
-if not DEBUG:
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_HSTS_SECONDS = 31536000
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
+# Security settings
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=0, cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=False, cast=bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=False, cast=bool)
+SECURE_CONTENT_TYPE_NOSNIFF = config('SECURE_CONTENT_TYPE_NOSNIFF', default=True, cast=bool)
+SECURE_BROWSER_XSS_FILTER = config('SECURE_BROWSER_XSS_FILTER', default=True, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+X_FRAME_OPTIONS = 'DENY'
