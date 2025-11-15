@@ -16,11 +16,13 @@ def get_mongodb():
             # Add connection timeout and retry settings
             _mongo_client = MongoClient(
                 settings.MONGODB_URI,
-                serverSelectionTimeoutMS=5000,
-                socketTimeoutMS=20000,
-                connectTimeoutMS=20000,
-                maxPoolSize=10,
-                retryWrites=True
+                serverSelectionTimeoutMS=30000,
+                socketTimeoutMS=60000,
+                connectTimeoutMS=30000,
+                maxPoolSize=50,
+                retryWrites=True,
+                ssl=True,
+                tlsAllowInvalidCertificates=False
             )
             _mongodb = _mongo_client[settings.MONGODB_NAME]
             # Test connection
@@ -58,10 +60,30 @@ class MongoDBManager:
                 self.collection = None
         return self.collection is not None
     
+    def get_next_devotee_id(self):
+        """Get next auto-increment devotee_id"""
+        if self.collection_name == 'devotees' and self._ensure_connection():
+            # Find the highest numeric devotee_id
+            all_devotees = list(self.collection.find({'devotee_id': {'$exists': True}}))
+            max_id = 0
+            for devotee in all_devotees:
+                devotee_id = devotee.get('devotee_id')
+                if isinstance(devotee_id, int):
+                    max_id = max(max_id, devotee_id)
+                elif isinstance(devotee_id, str) and devotee_id.isdigit():
+                    max_id = max(max_id, int(devotee_id))
+            return max_id + 1
+        return 1
+    
     def insert_one(self, document):
         """Insert a single document"""
         if self._ensure_connection():
             try:
+                # Add auto-increment devotee_id for devotees collection
+                if self.collection_name == 'devotees' and 'devotee_id' not in document:
+                    next_id = self.get_next_devotee_id()
+                    document['devotee_id'] = next_id
+                    print(f"Auto-generated devotee_id: {next_id}")
                 return self.collection.insert_one(document)
             except Exception as e:
                 print(f"Error inserting document into {self.collection_name}: {e}")
@@ -94,12 +116,12 @@ class MongoDBManager:
                 if limit:
                     cursor = cursor.limit(limit)
                 result = list(cursor)
-                print(f"Found {len(result)} documents in {self.collection.name}")
+                print(f"Found {len(result)} documents in {self.collection_name}")
                 return result
             except Exception as e:
-                print(f"Error finding documents in {self.collection.name}: {e}")
+                print(f"Error finding documents in {self.collection_name}: {e}")
                 return []
-        print(f"No connection to {self.collection.name if self.collection else 'unknown collection'}")
+        print(f"No connection to {self.collection_name}")
         return []
     
     def update_one(self, query, update):
@@ -140,10 +162,10 @@ class MongoDBManager:
         if self._ensure_connection():
             try:
                 count = self.collection.count_documents(query or {})
-                print(f"Count in {self.collection.name}: {count}")
+                print(f"Count in {self.collection_name}: {count}")
                 return count
             except Exception as e:
-                print(f"Error counting documents in {self.collection.name}: {e}")
+                print(f"Error counting documents in {self.collection_name}: {e}")
                 return 0
         return 0
     

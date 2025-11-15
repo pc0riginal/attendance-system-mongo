@@ -59,7 +59,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'temple_attendance.wsgi.application'
 
 # MongoDB Configuration
-MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://msm98:paras123@cluster0.4gnmc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0')
+MONGODB_URI = os.environ.get('MONGODB_URI', 'mongodb+srv://bapspalanapurmandir_db_user:JZk14IqQigujWwCi@cluster0.qf8igco.mongodb.net/temple_attendance?retryWrites=true&w=majority&appName=Cluster0')
 MONGODB_NAME = os.environ.get('MONGODB_NAME', 'temple_attendance')
 
 # MongoDB Client will be initialized in mongodb_utils.py

@@ -166,20 +166,14 @@ def devotee_add(request):
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
-        # Auto-generate devotee_id if not provided
+        # Auto-generate devotee_id if not provided - MongoDB utils will handle this
         devotee_id = request.POST.get('devotee_id', '').strip()
-        if not devotee_id:
-            # Generate ID: DT + year + sequential number
-            year = datetime.now().year
-            count = devotees_db.count() + 1
-            devotee_id = f"DT{year}{count:04d}"
-        
-        # Ensure devotee_id is stored as integer if it's numeric
-        if str(devotee_id).isdigit():
+        if devotee_id and str(devotee_id).isdigit():
             devotee_id = int(devotee_id)
+        elif not devotee_id:
+            devotee_id = None  # Let MongoDB utils auto-generate
         
         devotee_data = {
-            'devotee_id': devotee_id,
             'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
@@ -220,6 +214,10 @@ def devotee_add(request):
             photo_url = upload_devotee_photo(photo_file, devotee_data)
             if photo_url:
                 devotee_data['photo_url'] = photo_url
+        
+        # Only add devotee_id if provided, otherwise let MongoDB utils auto-generate
+        if devotee_id:
+            devotee_data['devotee_id'] = devotee_id
         
         result = devotees_db.insert_one(devotee_data)
         
