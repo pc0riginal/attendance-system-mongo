@@ -181,7 +181,7 @@ class MongoDBManager:
                 self.collection.create_index([('devotee_id', 1)])
             elif collection_name == 'devotees':
                 self.collection.create_index([('sabha_type', 1)])
-                self.collection.create_index([('contact_number', 1)], unique=True)
+                self.collection.create_index([('devotee_id', 1)], unique=True)
             elif collection_name == 'sabhas':
                 self.collection.create_index([('date', -1)])
         except Exception:

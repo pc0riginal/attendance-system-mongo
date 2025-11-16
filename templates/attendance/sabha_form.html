@@ -15,6 +15,20 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label class="form-label">Xetra <span class="text-danger">*</span></label>
+                                <input type="text" name="xetra" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Mandal <span class="text-danger">*</span></label>
+                                <input type="text" name="mandal" class="form-control" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label class="form-label">Date</label>
                                 <input type="date" name="date" class="form-control" min="{{ today }}" required>
                             </div>
@@ -51,11 +65,34 @@
                     </div>
                     <div class="d-flex flex-column flex-sm-row justify-content-between gap-2">
                         <a href="{% url 'sabha_list' %}" class="btn btn-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-temple">Create Sabha</button>
+                        <button type="submit" class="btn btn-temple" id="createSabhaBtn">
+                            <span id="createBtnText">Create Sabha</span>
+                            <span id="createBtnLoader" class="d-none">
+                                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                                Creating & marking absent...
+                            </span>
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const createBtn = document.getElementById('createSabhaBtn');
+    const btnText = document.getElementById('createBtnText');
+    const btnLoader = document.getElementById('createBtnLoader');
+    
+    if (form && createBtn) {
+        form.addEventListener('submit', function(e) {
+            createBtn.disabled = true;
+            btnText.classList.add('d-none');
+            btnLoader.classList.remove('d-none');
+        });
+    }
+});
+</script>
 {% endblock %}

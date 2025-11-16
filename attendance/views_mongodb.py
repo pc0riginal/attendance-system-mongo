@@ -330,11 +330,26 @@ def sabha_add(request):
             'date': request.POST.get('date'),
             'sabha_type': request.POST.get('sabha_type'),
             'location': request.POST.get('location'),
+            'xetra': request.POST.get('xetra'),
+            'mandal': request.POST.get('mandal'),
             'start_time': request.POST.get('start_time'),
             'end_time': request.POST.get('end_time'),
             'created_at': datetime.now().isoformat()
         }
-        sabhas_db.insert_one(sabha_data)
+        result = sabhas_db.insert_one(sabha_data)
+        sabha_id = str(result.inserted_id)
+        
+        # Create default absent records for all devotees of this sabha type
+        all_devotees = devotees_db.find({'sabha_type': sabha_data['sabha_type']})
+        for devotee in all_devotees:
+            attendance_db.insert_one({
+                'devotee_id': devotee.get('devotee_id', 'N/A'),
+                'sabha_id': sabha_id,
+                'status': 'absent',
+                'notes': '',
+                'timestamp': datetime.now().isoformat()
+            })
+        
         messages.success(request, 'Sabha created successfully!')
         return redirect('sabha_list')
     
@@ -398,30 +413,28 @@ def mark_attendance(request, sabha_id):
     
     if request.method == 'POST':
         for devotee in devotees:
-            devotee_id = str(devotee['_id'])
-            status = request.POST.get(f'status_{devotee_id}', 'absent')
-            notes = request.POST.get(f'notes_{devotee_id}', '')
+            devotee_object_id = str(devotee['_id'])
+            status = request.POST.get(f'status_{devotee_object_id}', 'absent')
+            notes = request.POST.get(f'notes_{devotee_object_id}', '')
             
+            devotee_number_id = devotee.get('devotee_id', 'N/A')
             existing = attendance_db.find_one({
-                'devotee_id': devotee_id,
+                'devotee_id': devotee_number_id,
                 'sabha_id': sabha_id
             })
             
             if existing:
                 attendance_db.update_one(
                     {'_id': existing['_id']},
-                    {'status': status, 'notes': notes, 'updated_at': datetime.now().isoformat()}
+                    {'status': status, 'notes': notes, 'timestamp': datetime.now().isoformat()}
                 )
             else:
                 attendance_db.insert_one({
-                    'devotee_id': devotee_id,
-                    'devotee_name': devotee['name'],
+                    'devotee_id': devotee_number_id,
                     'sabha_id': sabha_id,
-                    'sabha_date': sabha['date'],
-                    'sabha_type': sabha['sabha_type'],
                     'status': status,
                     'notes': notes,
-                    'marked_at': datetime.now().isoformat()
+                    'timestamp': datetime.now().isoformat()
                 })
         
         messages.success(request, 'Attendance marked successfully!')
@@ -432,47 +445,24 @@ def mark_attendance(request, sabha_id):
         return redirect(redirect_url)
     
     # Get existing attendance for current page only
-    devotee_ids = [str(d['_id']) for d in devotees]
-    existing_attendance = {
-        att['devotee_id']: att for att in attendance_db.find({
-            'sabha_id': sabha_id,
-            'devotee_id': {'$in': devotee_ids}
-        })
-    }
+    devotee_number_ids = [d.get('devotee_id', 'N/A') for d in devotees]
+    existing_attendance = {}
+    for att in attendance_db.find({
+        'sabha_id': sabha_id,
+        'devotee_id': {'$in': devotee_number_ids}
+    }):
+        existing_attendance[att['devotee_id']] = att
     
     # Add default absent status for devotees without records
     for devotee in devotees:
-        devotee_id = str(devotee['_id'])
-        if devotee_id not in existing_attendance:
-            existing_attendance[devotee_id] = {
+        devotee_number_id = devotee.get('devotee_id', 'N/A')
+        if devotee_number_id not in existing_attendance:
+            existing_attendance[devotee_number_id] = {
                 'status': 'absent',
                 'notes': ''
             }
     
-    # Create absent records for all devotees of this sabha type (async after response)
-    if request.method == 'GET':
-        from threading import Thread
-        def create_absent_records():
-            all_devotees = devotees_db.find({'sabha_type': sabha['sabha_type']})
-            for devotee in all_devotees:
-                devotee_id = str(devotee['_id'])
-                existing = attendance_db.find_one({'devotee_id': devotee_id, 'sabha_id': sabha_id})
-                if not existing:
-                    try:
-                        attendance_db.insert_one({
-                            'devotee_id': devotee_id,
-                            'devotee_name': devotee['name'],
-                            'sabha_id': sabha_id,
-                            'sabha_date': sabha['date'],
-                            'sabha_type': sabha['sabha_type'],
-                            'status': 'absent',
-                            'notes': '',
-                            'marked_at': datetime.now().isoformat()
-                        })
-                    except:
-                        pass  # Record might already exist due to race condition
-        
-        Thread(target=create_absent_records, daemon=True).start()
+
     
     # Create pagination object
     class PaginationObj:
@@ -547,7 +537,7 @@ def attendance_analytics(request):
     if date_to:
         query.setdefault('sabha_date', {})['$lte'] = date_to
     
-    # Get all attendance records
+    # Get all attendance records and join with sabha info
     records = attendance_db.find(query)
     
     # Aggregate data
@@ -558,16 +548,19 @@ def attendance_analytics(request):
     
     for record in records:
         if record['status'] == 'present':
-            sabha_counts[record['sabha_type']] += 1
-            date_intensity[record['sabha_date']] += 1
-            
-            # Monthly trend (last 3 months)
-            try:
-                date_obj = datetime.fromisoformat(record['sabha_date'])
-                month_key = date_obj.strftime('%Y-%m')
-                monthly_trend[month_key] += 1
-            except:
-                pass
+            # Get sabha info
+            sabha = sabhas_db.find_one({'_id': ObjectId(record['sabha_id'])})
+            if sabha:
+                sabha_counts[sabha['sabha_type']] += 1
+                date_intensity[sabha['date']] += 1
+                
+                # Monthly trend (last 3 months)
+                try:
+                    date_obj = datetime.fromisoformat(sabha['date'])
+                    month_key = date_obj.strftime('%Y-%m')
+                    monthly_trend[month_key] += 1
+                except:
+                    pass
     
     # Prepare response
     data = {
@@ -589,17 +582,55 @@ def attendance_report(request):
     page = int(request.GET.get('page', 1))
     per_page = 20
     
-    query = {}
+    # Build sabha query first
+    sabha_query = {}
     if sabha_type:
-        query['sabha_type'] = sabha_type
+        sabha_query['sabha_type'] = sabha_type
     if date_from:
-        query.setdefault('sabha_date', {})['$gte'] = date_from
+        sabha_query.setdefault('date', {})['$gte'] = date_from
     if date_to:
-        query.setdefault('sabha_date', {})['$lte'] = date_to
+        sabha_query.setdefault('date', {})['$lte'] = date_to
+    
+    # Get matching sabha IDs
+    matching_sabhas = sabhas_db.find(sabha_query, {'_id': 1})
+    sabha_ids = [str(s['_id']) for s in matching_sabhas]
+    
+    # Build attendance query
+    query = {}
+    if sabha_ids:
+        query['sabha_id'] = {'$in': sabha_ids}
     if status_filter:
         query['status'] = status_filter
+    search_type = request.GET.get('search_type', 'name')
     if search_query:
-        query['devotee_name'] = {'$regex': search_query, '$options': 'i'}
+        if search_type == 'name':
+            # Get devotee IDs that match name search
+            matching_devotees = devotees_db.find(
+                {'name': {'$regex': search_query, '$options': 'i'}}, 
+                {'devotee_id': 1}
+            )
+            devotee_ids = [d.get('devotee_id') for d in matching_devotees if d.get('devotee_id')]
+            if devotee_ids:
+                query['devotee_id'] = {'$in': devotee_ids}
+            else:
+                query['devotee_id'] = {'$in': []}  # No matches
+        elif search_type == 'id':
+            # Search directly by devotee_id in attendance records
+            if search_query.isdigit():
+                query['devotee_id'] = int(search_query)
+            else:
+                query['devotee_id'] = {'$regex': str(search_query), '$options': 'i'}
+        elif search_type == 'phone':
+            # Get devotee IDs that match phone search, then search attendance by those IDs
+            matching_devotees = devotees_db.find(
+                {'contact_number': {'$regex': search_query}}, 
+                {'devotee_id': 1}
+            )
+            devotee_ids = [d.get('devotee_id') for d in matching_devotees if d.get('devotee_id')]
+            if devotee_ids:
+                query['devotee_id'] = {'$in': devotee_ids}
+            else:
+                query['devotee_id'] = {'$in': []}  # No matches
     
     # Get counts for status buttons
     base_query = {k: v for k, v in query.items() if k != 'status'}
@@ -611,6 +642,29 @@ def attendance_report(request):
     total_count = attendance_db.count(query)
     skip = (page - 1) * per_page
     attendance_records = attendance_db.find(query, sort=[('sabha_date', -1)], skip=skip, limit=per_page)
+    
+    # Enrich attendance records with devotee and sabha info
+    attendance_list = list(attendance_records)
+    for record in attendance_list:
+        # Get devotee info
+        devotee = devotees_db.find_one({'devotee_id': record['devotee_id']})
+        if devotee:
+            record['devotee_name'] = devotee['name']
+            record['mobile'] = devotee.get('contact_number', 'N/A')
+            record['devotee_type'] = devotee.get('devotee_type', 'N/A')
+        else:
+            record['devotee_name'] = 'Unknown'
+            record['mobile'] = 'N/A'
+            record['devotee_type'] = 'N/A'
+        
+        # Get sabha info
+        sabha = sabhas_db.find_one({'_id': ObjectId(record['sabha_id'])})
+        if sabha:
+            record['sabha_date'] = sabha['date']
+            record['sabha_type'] = sabha['sabha_type']
+        else:
+            record['sabha_date'] = 'Unknown'
+            record['sabha_type'] = 'Unknown'
     
     # Pagination info
     total_pages = (total_count + per_page - 1) // per_page
@@ -633,8 +687,6 @@ def attendance_report(request):
         
         def __iter__(self):
             return iter(self.object_list)
-    
-    attendance_list = list(attendance_records)
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         # Convert ObjectId to string for JSON serialization
@@ -681,32 +733,218 @@ def attendance_report(request):
 
 @login_required
 def export_attendance(request):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="attendance_report.csv"'
+    import pandas as pd
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from concurrent.futures import ThreadPoolExecutor
+    from io import BytesIO
     
-    writer = csv.writer(response)
-    writer.writerow(['Devotee Name', 'Sabha Type', 'Date', 'Status', 'Notes'])
-    
-    sabha_type = request.GET.get('sabha_type')
+    sabha_type_filter = request.GET.get('sabha_type')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
+    status_filter = request.GET.get('status')
     
-    query = {}
-    if sabha_type:
-        query['sabha_type'] = sabha_type
+    # Build queries
+    sabha_query = {}
+    if sabha_type_filter:
+        sabha_query['sabha_type'] = sabha_type_filter
     if date_from:
-        query.setdefault('sabha_date', {})['$gte'] = date_from
+        sabha_query.setdefault('date', {})['$gte'] = date_from
     if date_to:
-        query.setdefault('sabha_date', {})['$lte'] = date_to
+        sabha_query.setdefault('date', {})['$lte'] = date_to
     
-    for attendance in attendance_db.find(query):
-        writer.writerow([
-            attendance['devotee_name'],
-            attendance['sabha_type'].title(),
-            attendance['sabha_date'],
-            attendance['status'].title(),
-            attendance.get('notes', '')
-        ])
+    # Get data using pandas for fast processing
+    sabhas = list(sabhas_db.find(sabha_query, sort=[('date', 1)]))
+    sabha_ids = [str(s['_id']) for s in sabhas]
+    
+    att_query = {'sabha_id': {'$in': sabha_ids}} if sabha_ids else {}
+    if status_filter:
+        att_query['status'] = status_filter
+    
+    attendance_records = list(attendance_db.find(att_query))
+    devotee_ids = list(set(att['devotee_id'] for att in attendance_records))
+    devotees = list(devotees_db.find({'devotee_id': {'$in': devotee_ids}}))
+    
+    # Create pandas DataFrames for fast processing
+    sabha_df = pd.DataFrame(sabhas)
+    devotee_df = pd.DataFrame(devotees)
+    att_df = pd.DataFrame(attendance_records)
+    
+    if not att_df.empty:
+        # Convert ObjectId to string for merge
+        sabha_df['_id_str'] = sabha_df['_id'].astype(str)
+        
+        # Merge data using pandas
+        att_df = att_df.merge(sabha_df[['_id_str', 'sabha_type', 'date']], left_on='sabha_id', right_on='_id_str', how='left')
+        att_df = att_df.merge(devotee_df[['devotee_id', 'name', 'contact_number', 'devotee_type']], on='devotee_id', how='left')
+        
+        # Debug merged data
+        print(f"Merged data columns: {att_df.columns.tolist()}")
+        print(f"Sample sabha_type values: {att_df['sabha_type'].unique()}")
+        
+        # Filter out rows with missing sabha_type
+        att_df = att_df.dropna(subset=['sabha_type'])
+    
+    # Create workbook
+    wb = openpyxl.Workbook()
+    
+    # Styling
+    header_font = Font(bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
+    center_align = Alignment(horizontal='center', vertical='center')
+    
+    def create_summary_sheet():
+        ws = wb.active
+        ws.title = '📊 Summary'
+        
+        if att_df.empty:
+            return
+        
+        # Title
+        ws.merge_cells('A1:E1')
+        title_cell = ws['A1']
+        title_cell.value = '🏛️ Temple Attendance Summary by Date'
+        title_cell.font = Font(bold=True, size=16, color='FFFFFF')
+        title_cell.fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
+        title_cell.alignment = center_align
+        
+        # Date-wise summary for all sabha types
+        date_summary = att_df.groupby(['date', 'sabha_type', 'status']).size().unstack(fill_value=0).reset_index()
+        
+        headers = ['Date', 'Sabha Type', 'Present', 'Absent', 'Late']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=3, column=col, value=header)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = center_align
+        
+        row = 4
+        for _, data in date_summary.iterrows():
+            ws.cell(row=row, column=1, value=str(data['date']))
+            ws.cell(row=row, column=2, value=data['sabha_type'].title())
+            ws.cell(row=row, column=3, value=data.get('present', 0))
+            ws.cell(row=row, column=4, value=data.get('absent', 0))
+            ws.cell(row=row, column=5, value=data.get('late', 0))
+            row += 1
+    
+    def create_sabha_sheet(sabha_type):
+        sabha_data = att_df[att_df['sabha_type'] == sabha_type]
+        
+        if sabha_data.empty:
+            return None
+        
+        try:
+            ws = wb.create_sheet(f'📋 {sabha_type.title()} Sabha')
+            
+            # Create pivot table with devotees as rows and dates as columns
+            pivot_data = sabha_data.pivot_table(
+                index=['devotee_id', 'name', 'contact_number', 'devotee_type'],
+                columns='date',
+                values='status',
+                aggfunc='first',
+                fill_value='absent'
+            ).reset_index()
+            
+            # Get unique dates for column count
+            dates = sorted(sabha_data['date'].unique())
+            
+            # Title
+            title_end_col = chr(65 + len(pivot_data.columns) - 1)
+            ws.merge_cells(f'A1:{title_end_col}1')
+            ws['A1'] = f'🏛️ {sabha_type.title()} Sabha - Devotee Attendance by Date'
+            ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
+            ws['A1'].fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
+            ws['A1'].alignment = center_align
+            
+            # Date-wise counts above each date column
+            for col_idx, date in enumerate(dates, 5):
+                date_data = sabha_data[sabha_data['date'] == date]
+                present_count = len(date_data[date_data['status'] == 'present'])
+                absent_count = len(date_data[date_data['status'] == 'absent'])
+                late_count = len(date_data[date_data['status'] == 'late'])
+                
+                count_text = f'✅{present_count} ❌{absent_count} ⏰{late_count}'
+                cell = ws.cell(row=2, column=col_idx, value=count_text)
+                cell.font = Font(bold=True, size=9)
+                cell.fill = PatternFill(start_color='F0F0F0', end_color='F0F0F0', fill_type='solid')
+                cell.alignment = center_align
+            
+            # Headers
+            headers = ['ID', 'Name', 'Mobile', 'Type'] + [str(date) for date in dates]
+            for col, header in enumerate(headers, 1):
+                cell = ws.cell(row=3, column=col, value=header)
+                cell.font = header_font
+                cell.fill = header_fill
+                cell.alignment = center_align
+            
+            # Data rows
+            for idx, row in pivot_data.iterrows():
+                excel_row = idx + 4
+                ws.cell(row=excel_row, column=1, value=row['devotee_id'])
+                ws.cell(row=excel_row, column=2, value=row['name'])
+                ws.cell(row=excel_row, column=3, value=row['contact_number'])
+                ws.cell(row=excel_row, column=4, value=row['devotee_type'])
+                
+                # Fill date columns with status and color coding
+                for col_idx, date in enumerate(dates, 5):
+                    status = row[date] if date in row else 'absent'
+                    cell = ws.cell(row=excel_row, column=col_idx, value=status.title())
+                    
+                    # Color coding
+                    if status == 'present':
+                        cell.fill = PatternFill(start_color='90EE90', end_color='90EE90', fill_type='solid')
+                    elif status == 'late':
+                        cell.fill = PatternFill(start_color='FFD700', end_color='FFD700', fill_type='solid')
+                    else:
+                        cell.fill = PatternFill(start_color='FFB6C1', end_color='FFB6C1', fill_type='solid')
+            
+            # Add summary row at bottom
+            summary_row = len(pivot_data) + 6
+            ws.cell(row=summary_row, column=1, value='TOTALS:').font = Font(bold=True)
+            
+            for col_idx, date in enumerate(dates, 5):
+                date_data = sabha_data[sabha_data['date'] == date]
+                present_count = len(date_data[date_data['status'] == 'present'])
+                absent_count = len(date_data[date_data['status'] == 'absent'])
+                late_count = len(date_data[date_data['status'] == 'late'])
+                
+                summary_text = f'✅{present_count} ❌{absent_count} ⏰{late_count}'
+                cell = ws.cell(row=summary_row, column=col_idx, value=summary_text)
+                cell.font = Font(bold=True, size=9)
+                cell.fill = PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
+            
+            return ws
+            
+        except Exception as e:
+            print(f"Error creating sheet for {sabha_type}: {str(e)}")
+            return None
+    
+    # Create summary sheet
+    create_summary_sheet()
+    
+    # Create sabha sheets
+    if not att_df.empty:
+        sabha_types = att_df['sabha_type'].unique()
+        print(f"Found sabha types: {sabha_types}")  # Debug
+        for sabha_type in sabha_types:
+            print(f"Creating sheet for: {sabha_type}")  # Debug
+            sheet = create_sabha_sheet(sabha_type)
+            if sheet:
+                print(f"Successfully created sheet: {sheet.title}")  # Debug
+            else:
+                print(f"Failed to create sheet for: {sabha_type}")  # Debug
+
+    
+    # Save to BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="temple_attendance_report.xlsx"'
     
     return response
 
@@ -832,13 +1070,16 @@ def process_batch_worker(batch_data):
                 else:
                     clean_row[k] = v
             
-            existing = devotees_worker_db.find_one({'contact_number': clean_row['contact_number']})
+            # Check only by devotee_id for uniqueness
+            existing = devotees_worker_db.find_one({'devotee_id': clean_row.get('devotee_id')})
             if existing:
+                # Overwrite existing devotee with same devotee_id
                 update_data = {k: v for k, v in clean_row.items() if k != '_id'}
                 update_data['updated_at'] = datetime.now().isoformat()
                 devotees_worker_db.update_one({'_id': existing['_id']}, update_data)
                 updated_count += 1
             else:
+                # Create new devotee (even if contact_number exists elsewhere)
                 clean_row['created_at'] = datetime.now().isoformat()
                 devotees_worker_db.collection.insert_one(clean_row)
                 created_count += 1
@@ -970,23 +1211,25 @@ def save_individual_attendance(request):
         if not sabha or not devotee:
             return JsonResponse({'success': False, 'error': 'Sabha or Devotee not found'})
         
-        existing = attendance_db.find_one({'devotee_id': devotee_id, 'sabha_id': sabha_id})
+        devotee = devotees_db.find_one({'_id': ObjectId(devotee_id)})
+        if not devotee:
+            return JsonResponse({'success': False, 'error': 'Devotee not found'})
+            
+        devotee_number_id = devotee.get('devotee_id', 'N/A')
+        existing = attendance_db.find_one({'devotee_id': devotee_number_id, 'sabha_id': sabha_id})
         
         if existing:
             attendance_db.update_one(
                 {'_id': existing['_id']},
-                {'status': status, 'notes': notes, 'updated_at': datetime.now().isoformat()}
+                {'status': status, 'notes': notes, 'timestamp': datetime.now().isoformat()}
             )
         else:
             attendance_db.insert_one({
-                'devotee_id': devotee_id,
-                'devotee_name': devotee['name'],
+                'devotee_id': devotee_number_id,
                 'sabha_id': sabha_id,
-                'sabha_date': sabha['date'],
-                'sabha_type': sabha['sabha_type'],
                 'status': status,
                 'notes': notes,
-                'marked_at': datetime.now().isoformat()
+                'timestamp': datetime.now().isoformat()
             })
         
         return JsonResponse({'success': True, 'message': 'Attendance saved'})

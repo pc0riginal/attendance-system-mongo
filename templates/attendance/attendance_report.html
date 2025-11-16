@@ -122,12 +122,21 @@
     </div>
 
     {% if filters.status %}
-    <div class="mb-3">
-        <input type="text" id="reportSearchInput" class="form-control" placeholder="Search devotees by name..." value="{{ search_query }}">
-        <div id="reportSearchLoading" class="text-center mt-2" style="display: none;">
-            <div class="spinner-border spinner-border-sm" role="status"></div>
-            <span class="ms-2">Searching...</span>
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <select id="searchType" class="form-select">
+                <option value="name" {% if request.GET.search_type == 'name' %}selected{% endif %}>Name</option>
+                <option value="id" {% if request.GET.search_type == 'id' %}selected{% endif %}>ID</option>
+                <option value="phone" {% if request.GET.search_type == 'phone' %}selected{% endif %}>Phone</option>
+            </select>
         </div>
+        <div class="col-md-9">
+            <input type="text" id="reportSearchInput" class="form-control" placeholder="Search devotees..." value="{{ search_query }}">
+        </div>
+    </div>
+    <div id="reportSearchLoading" class="text-center mb-2" style="display: none;">
+        <div class="spinner-border spinner-border-sm" role="status"></div>
+        <span class="ms-2">Searching...</span>
     </div>
     {% endif %}
 
@@ -142,6 +151,7 @@
                                 <div class="d-flex justify-content-between align-items-start">
                                     <div>
                                         <h6 class="mb-1">{{ record.devotee_name }}</h6>
+                                        <small class="text-muted d-block">ID: {{ record.devotee_id|default:"N/A" }} | Mobile: {{ record.mobile|default:"N/A" }}</small>
                                         <small class="text-muted d-block">{{ record.sabha_type|title }} Sabha</small>
                                         <small class="text-muted d-block">{{ record.sabha_date }}</small>
                                         {% if record.notes %}<small class="text-muted">{{ record.notes }}</small>{% endif %}
@@ -162,7 +172,9 @@
                         <table class="table table-striped">
                             <thead>
                                 <tr>
+                                    <th>ID</th>
                                     <th>Devotee</th>
+                                    <th>Mobile</th>
                                     <th>Sabha Type</th>
                                     <th>Date</th>
                                     <th>Status</th>
@@ -172,7 +184,9 @@
                             <tbody>
                                 {% for record in page_obj %}
                                     <tr>
+                                        <td>{{ record.devotee_id|default:"N/A" }}</td>
                                         <td>{{ record.devotee_name }}</td>
+                                        <td>{{ record.mobile|default:"N/A" }}</td>
                                         <td>{{ record.sabha_type|title }} Sabha</td>
                                         <td>{{ record.sabha_date }}</td>
                                         <td>
@@ -251,6 +265,7 @@ function attachReportSearch() {
 
 function handleReportSearch() {
     const searchTerm = this.value;
+    const searchType = document.getElementById('searchType').value;
     const loading = document.getElementById('reportSearchLoading');
     
     clearTimeout(reportSearchTimeout);
@@ -268,8 +283,10 @@ function handleReportSearch() {
                 url.searchParams.set('tab', 'report');
                 if (searchTerm) {
                     url.searchParams.set('search', searchTerm);
+                    url.searchParams.set('search_type', searchType);
                 } else {
                     url.searchParams.delete('search');
+                    url.searchParams.delete('search_type');
                 }
                 url.searchParams.delete('page');
                 
@@ -299,6 +316,7 @@ function handleReportSearch() {
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div>
                                                 <h6 class="mb-1">${record.devotee_name}</h6>
+                                                <small class="text-muted d-block">ID: ${record.devotee_id || 'N/A'} | Mobile: ${record.mobile || 'N/A'}</small>
                                                 <small class="text-muted d-block">${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</small>
                                                 <small class="text-muted d-block">${record.sabha_date}</small>
                                                 ${record.notes ? `<small class="text-muted">${record.notes}</small>` : ''}
@@ -322,7 +340,9 @@ function handleReportSearch() {
                                 
                                 const row = document.createElement('tr');
                                 row.innerHTML = `
+                                    <td>${record.devotee_id || 'N/A'}</td>
                                     <td>${record.devotee_name}</td>
+                                    <td>${record.mobile || 'N/A'}</td>
                                     <td>${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</td>
                                     <td>${record.sabha_date}</td>
                                     <td>
@@ -367,6 +387,7 @@ function updateReportList(data) {
                 <div class="d-flex justify-content-between align-items-start">
                     <div>
                         <h6 class="mb-1">${record.devotee_name}</h6>
+                        <small class="text-muted d-block">ID: ${record.devotee_id || 'N/A'} | Mobile: ${record.mobile || 'N/A'}</small>
                         <small class="text-muted d-block">${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</small>
                         <small class="text-muted d-block">${record.sabha_date}</small>
                         ${record.notes ? `<small class="text-muted">${record.notes}</small>` : ''}
@@ -382,7 +403,9 @@ function updateReportList(data) {
         
         const desktopRow = document.createElement('tr');
         desktopRow.innerHTML = `
+            <td>${record.devotee_id || 'N/A'}</td>
             <td>${record.devotee_name}</td>
+            <td>${record.mobile || 'N/A'}</td>
             <td>${record.sabha_type.charAt(0).toUpperCase() + record.sabha_type.slice(1)} Sabha</td>
             <td>${record.sabha_date}</td>
             <td>
@@ -710,7 +733,7 @@ function clearReportData() {
     const paginationNav = document.querySelector('#report nav');
     
     if (mobileContainer) mobileContainer.innerHTML = '<div class="text-center py-4"><p class="text-muted">Select a status to view records</p></div>';
-    if (desktopContainer) desktopContainer.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Select a status to view records</td></tr>';
+    if (desktopContainer) desktopContainer.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">Select a status to view records</td></tr>';
     if (paginationNav) paginationNav.style.display = 'none';
 }
 
