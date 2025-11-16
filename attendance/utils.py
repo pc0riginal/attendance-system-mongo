@@ -66,16 +66,14 @@ def process_excel_file(file_path, sabha_type_filter=None):
         for index, row in df.iterrows():
             row_errors = []
             
-            # Validate devotee_id (mandatory integer)
+            # Validate devotee_id (mandatory string with prefix)
             if not row['devotee_id'] or pd.isna(row['devotee_id']):
                 row_errors.append("Devotee ID is required")
             else:
-                try:
-                    devotee_id = int(row['devotee_id'])
-                    if devotee_id <= 0:
-                        row_errors.append("Devotee ID must be a positive integer")
-                except (ValueError, TypeError):
-                    row_errors.append("Devotee ID must be an integer number")
+                devotee_id_str = str(row['devotee_id']).strip()
+                # Check format: prefix + number (e.g., p1, m2, y3, b4)
+                if not re.match(r'^[a-zA-Z]\d+$', devotee_id_str):
+                    row_errors.append("Devotee ID must be in format: prefix + number (e.g., p1, m2, y3, b4)")
             
             # Validate name (mandatory)
             if not row['name'] or pd.isna(row['name']) or str(row['name']).strip() == '':
@@ -153,7 +151,7 @@ def process_excel_file(file_path, sabha_type_filter=None):
                 
                 # Prepare valid row data
                 valid_row = {
-                    'devotee_id': int(row['devotee_id']),
+                    'devotee_id': str(row['devotee_id']).strip(),
                     'name': str(row['name']).strip(),
                     'contact_number': str(row['contact_number']).strip(),
                     'sabha_type': str(row['sabha_type']).lower().strip(),

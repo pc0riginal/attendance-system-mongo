@@ -73,14 +73,7 @@ def devotee_list(request):
     query = {}
     if search_query:
         if search_type == 'id':
-            # Search both as integer and string to handle mixed data types
-            if search_query.isdigit():
-                query = {'$or': [
-                    {'devotee_id': int(search_query)},
-                    {'devotee_id': str(search_query)}
-                ]}
-            else:
-                query = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
+            query = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
         elif search_type == 'phone':
             query = {'contact_number': {'$regex': search_query}}
         elif search_type == 'name':
@@ -166,12 +159,16 @@ def devotee_add(request):
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
-        # Auto-generate devotee_id if not provided - MongoDB utils will handle this
+        # Get devotee_id as string (mandatory)
         devotee_id = request.POST.get('devotee_id', '').strip()
-        if devotee_id and str(devotee_id).isdigit():
-            devotee_id = int(devotee_id)
-        elif not devotee_id:
-            devotee_id = None  # Let MongoDB utils auto-generate
+        if not devotee_id:
+            messages.error(request, 'Devotee ID is required')
+            return render(request, 'attendance/devotee_form.html', {'title': 'Add Devotee', 'today': datetime.now().date().isoformat()})
+        
+        # Check if devotee_id already exists
+        if devotees_db.find_one({'devotee_id': devotee_id}):
+            messages.error(request, f'Devotee ID {devotee_id} already exists')
+            return render(request, 'attendance/devotee_form.html', {'title': 'Add Devotee', 'today': datetime.now().date().isoformat()})
         
         devotee_data = {
             'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
@@ -215,9 +212,7 @@ def devotee_add(request):
             if photo_url:
                 devotee_data['photo_url'] = photo_url
         
-        # Only add devotee_id if provided, otherwise let MongoDB utils auto-generate
-        if devotee_id:
-            devotee_data['devotee_id'] = devotee_id
+        devotee_data['devotee_id'] = devotee_id
         
         result = devotees_db.insert_one(devotee_data)
         
@@ -251,10 +246,12 @@ def devotee_edit(request, pk):
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
-        devotee_id_input = request.POST.get('devotee_id', devotee.get('devotee_id', ''))
-        # Ensure devotee_id is stored as integer if it's numeric
-        if str(devotee_id_input).isdigit():
-            devotee_id_input = int(devotee_id_input)
+        devotee_id_input = request.POST.get('devotee_id', devotee.get('devotee_id', '')).strip()
+        
+        # Check if devotee_id changed and if new ID already exists
+        if devotee_id_input != devotee.get('devotee_id') and devotees_db.find_one({'devotee_id': devotee_id_input}):
+            messages.error(request, f'Devotee ID {devotee_id_input} already exists')
+            return render(request, 'attendance/devotee_form.html', {'devotee': devotee, 'title': 'Edit Devotee', 'today': datetime.now().date().isoformat()})
         
         update_data = {
             'devotee_id': devotee_id_input,
@@ -398,14 +395,7 @@ def mark_attendance(request, sabha_id):
     if search_query:
         search_condition = {}
         if search_type == 'id':
-            # Search both as integer and string to handle mixed data types
-            if search_query.isdigit():
-                search_condition = {'$or': [
-                    {'devotee_id': int(search_query)},
-                    {'devotee_id': str(search_query)}
-                ]}
-            else:
-                search_condition = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
+            search_condition = {'devotee_id': {'$regex': str(search_query), '$options': 'i'}}
         elif search_type == 'phone':
             search_condition = {'contact_number': {'$regex': search_query}}
         elif search_type == 'name':
@@ -639,11 +629,7 @@ def attendance_report(request):
             else:
                 query['devotee_id'] = {'$in': []}  # No matches
         elif search_type == 'id':
-            # Search directly by devotee_id in attendance records
-            if search_query.isdigit():
-                query['devotee_id'] = int(search_query)
-            else:
-                query['devotee_id'] = {'$regex': str(search_query), '$options': 'i'}
+            query['devotee_id'] = {'$regex': str(search_query), '$options': 'i'}
         elif search_type == 'phone':
             # Get devotee IDs that match phone search, then search attendance by those IDs
             matching_devotees = devotees_db.find(
@@ -817,7 +803,7 @@ def export_attendance(request):
         sabha_df['_id_str'] = sabha_df['_id'].astype(str)
         
         # Merge data using pandas
-        att_df = att_df.merge(sabha_df[['_id_str', 'sabha_type', 'date']], left_on='sabha_id', right_on='_id_str', how='left')
+        att_df = att_df.merge(sabha_df[['_id_str', 'sabha_type', 'date', 'mandal']], left_on='sabha_id', right_on='_id_str', how='left')
         att_df = att_df.merge(devotee_df[['devotee_id', 'name', 'contact_number', 'devotee_type']], on='devotee_id', how='left')
         
         # Debug merged data
@@ -843,17 +829,17 @@ def export_attendance(request):
             return
         
         # Title
-        ws.merge_cells('A1:E1')
+        ws.merge_cells('A1:F1')
         title_cell = ws['A1']
-        title_cell.value = '🏛️ Temple Attendance Summary by Date'
+        title_cell.value = '🏛️ Temple Attendance Summary by Mandal, Sabha & Date'
         title_cell.font = Font(bold=True, size=16, color='FFFFFF')
         title_cell.fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
         title_cell.alignment = center_align
         
-        # Date-wise summary for all sabha types
-        date_summary = att_df.groupby(['date', 'sabha_type', 'status']).size().unstack(fill_value=0).reset_index()
+        # Summary by mandal, sabha type and date
+        summary_data = att_df.groupby(['mandal', 'sabha_type', 'date', 'status']).size().unstack(fill_value=0).reset_index()
         
-        headers = ['Date', 'Sabha Type', 'Present', 'Absent', 'Late']
+        headers = ['Mandal', 'Sabha Type', 'Date', 'Present', 'Absent', 'Late']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=3, column=col, value=header)
             cell.font = header_font
@@ -861,25 +847,26 @@ def export_attendance(request):
             cell.alignment = center_align
         
         row = 4
-        for _, data in date_summary.iterrows():
-            ws.cell(row=row, column=1, value=str(data['date']))
+        for _, data in summary_data.iterrows():
+            ws.cell(row=row, column=1, value=str(data['mandal']))
             ws.cell(row=row, column=2, value=data['sabha_type'].title())
-            ws.cell(row=row, column=3, value=data.get('present', 0))
-            ws.cell(row=row, column=4, value=data.get('absent', 0))
-            ws.cell(row=row, column=5, value=data.get('late', 0))
+            ws.cell(row=row, column=3, value=str(data['date']))
+            ws.cell(row=row, column=4, value=data.get('present', 0))
+            ws.cell(row=row, column=5, value=data.get('absent', 0))
+            ws.cell(row=row, column=6, value=data.get('late', 0))
             row += 1
     
-    def create_sabha_sheet(sabha_type):
-        sabha_data = att_df[att_df['sabha_type'] == sabha_type]
+    def create_mandal_sabha_sheet(mandal, sabha_type):
+        sheet_data = att_df[(att_df['mandal'] == mandal) & (att_df['sabha_type'] == sabha_type)]
         
-        if sabha_data.empty:
+        if sheet_data.empty:
             return None
         
         try:
-            ws = wb.create_sheet(f'📋 {sabha_type.title()} Sabha')
+            ws = wb.create_sheet(f'{mandal} - {sabha_type.title()}')
             
             # Create pivot table with devotees as rows and dates as columns
-            pivot_data = sabha_data.pivot_table(
+            pivot_data = sheet_data.pivot_table(
                 index=['devotee_id', 'name', 'contact_number', 'devotee_type'],
                 columns='date',
                 values='status',
@@ -888,19 +875,19 @@ def export_attendance(request):
             ).reset_index()
             
             # Get unique dates for column count
-            dates = sorted(sabha_data['date'].unique())
+            dates = sorted(sheet_data['date'].unique())
             
             # Title
             title_end_col = chr(65 + len(pivot_data.columns) - 1)
             ws.merge_cells(f'A1:{title_end_col}1')
-            ws['A1'] = f'🏛️ {sabha_type.title()} Sabha - Devotee Attendance by Date'
+            ws['A1'] = f'🏛️ {mandal} - {sabha_type.title()} Sabha'
             ws['A1'].font = Font(bold=True, size=14, color='FFFFFF')
             ws['A1'].fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
             ws['A1'].alignment = center_align
             
             # Date-wise counts above each date column
             for col_idx, date in enumerate(dates, 5):
-                date_data = sabha_data[sabha_data['date'] == date]
+                date_data = sheet_data[sheet_data['date'] == date]
                 present_count = len(date_data[date_data['status'] == 'present'])
                 absent_count = len(date_data[date_data['status'] == 'absent'])
                 late_count = len(date_data[date_data['status'] == 'late'])
@@ -940,41 +927,28 @@ def export_attendance(request):
                     else:
                         cell.fill = PatternFill(start_color='FFB6C1', end_color='FFB6C1', fill_type='solid')
             
-            # Add summary row at bottom
-            summary_row = len(pivot_data) + 6
-            ws.cell(row=summary_row, column=1, value='TOTALS:').font = Font(bold=True)
-            
-            for col_idx, date in enumerate(dates, 5):
-                date_data = sabha_data[sabha_data['date'] == date]
-                present_count = len(date_data[date_data['status'] == 'present'])
-                absent_count = len(date_data[date_data['status'] == 'absent'])
-                late_count = len(date_data[date_data['status'] == 'late'])
-                
-                summary_text = f'✅{present_count} ❌{absent_count} ⏰{late_count}'
-                cell = ws.cell(row=summary_row, column=col_idx, value=summary_text)
-                cell.font = Font(bold=True, size=9)
-                cell.fill = PatternFill(start_color='E0E0E0', end_color='E0E0E0', fill_type='solid')
-            
             return ws
             
         except Exception as e:
-            print(f"Error creating sheet for {sabha_type}: {str(e)}")
+            print(f"Error creating sheet for {mandal} - {sabha_type}: {str(e)}")
             return None
     
     # Create summary sheet
     create_summary_sheet()
     
-    # Create sabha sheets
+    # Create sheets by mandal -> sabha type structure
     if not att_df.empty:
-        sabha_types = att_df['sabha_type'].unique()
-        print(f"Found sabha types: {sabha_types}")  # Debug
-        for sabha_type in sabha_types:
-            print(f"Creating sheet for: {sabha_type}")  # Debug
-            sheet = create_sabha_sheet(sabha_type)
-            if sheet:
-                print(f"Successfully created sheet: {sheet.title}")  # Debug
-            else:
-                print(f"Failed to create sheet for: {sabha_type}")  # Debug
+        # Group by mandal first
+        mandals = att_df['mandal'].unique()
+        for mandal in mandals:
+            mandal_data = att_df[att_df['mandal'] == mandal]
+            sabha_types = mandal_data['sabha_type'].unique()
+            
+            for sabha_type in sabha_types:
+                sheet_name = f'{mandal} - {sabha_type.title()}'
+                sheet = create_mandal_sabha_sheet(mandal, sabha_type)
+                if sheet:
+                    print(f"Created sheet: {sheet_name}")
 
     
     # Save to BytesIO

@@ -11,6 +11,17 @@ sabha_types = ["bal", "yuvak", "mahila", "sanyukt"]
 devotee_types = ["haribhakt", "gunbhavi", "karyakar"]
 genders = ["male", "female"]
 
+# Define prefixes for devotee_id
+prefix_map = {
+    "bal": "b",
+    "yuvak": "y", 
+    "mahila": "m",
+    "sanyukt": "s"
+}
+
+# Counter for each sabha type
+counters = {"b": 1, "y": 1, "m": 1, "s": 1}
+
 records = []
 
 def generate_phone():
@@ -38,8 +49,13 @@ for i in range(1, 501):
     zone = f"Zone {random.choice(['A', 'B', 'C', 'D'])}"
     join_date = fake.date_between(start_date="-2y", end_date="today")
     
+    # Generate devotee_id with prefix
+    prefix = prefix_map[sabha_type]
+    devotee_id = f"{prefix}{counters[prefix]}"
+    counters[prefix] += 1
+    
     records.append({
-        "devotee_id": i,
+        "devotee_id": devotee_id,
         "name": name,
         "contact_number": contact_number,
         "sabha_type": sabha_type,

@@ -60,30 +60,44 @@ class MongoDBManager:
                 self.collection = None
         return self.collection is not None
     
-    def get_next_devotee_id(self):
-        """Get next auto-increment devotee_id"""
+    def get_next_devotee_id(self, sabha_type=None):
+        """Get next auto-increment devotee_id with prefix based on sabha_type"""
         if self.collection_name == 'devotees' and self._ensure_connection():
-            # Find the highest numeric devotee_id
-            all_devotees = list(self.collection.find({'devotee_id': {'$exists': True}}))
-            max_id = 0
-            for devotee in all_devotees:
-                devotee_id = devotee.get('devotee_id')
-                if isinstance(devotee_id, int):
-                    max_id = max(max_id, devotee_id)
-                elif isinstance(devotee_id, str) and devotee_id.isdigit():
-                    max_id = max(max_id, int(devotee_id))
-            return max_id + 1
-        return 1
+            # Define prefixes for each sabha type
+            prefixes = {
+                'bal': 'b',
+                'yuvak': 'y', 
+                'mahila': 'm',
+                'sanyukt': 's'
+            }
+            
+            prefix = prefixes.get(sabha_type, 'g')  # 'g' for general/unknown
+            
+            # Find the highest number for this prefix
+            pattern = f'^{prefix}\\d+$'
+            existing_ids = list(self.collection.find(
+                {'devotee_id': {'$regex': pattern}},
+                {'devotee_id': 1}
+            ))
+            
+            max_num = 0
+            for doc in existing_ids:
+                devotee_id = doc.get('devotee_id', '')
+                if devotee_id.startswith(prefix):
+                    try:
+                        num = int(devotee_id[len(prefix):])
+                        max_num = max(max_num, num)
+                    except ValueError:
+                        continue
+            
+            return f'{prefix}{max_num + 1}'
+        return 'g1'
     
     def insert_one(self, document):
         """Insert a single document"""
         if self._ensure_connection():
             try:
-                # Add auto-increment devotee_id for devotees collection
-                if self.collection_name == 'devotees' and 'devotee_id' not in document:
-                    next_id = self.get_next_devotee_id()
-                    document['devotee_id'] = next_id
-                    print(f"Auto-generated devotee_id: {next_id}")
+                # devotee_id is now mandatory and provided by user
                 return self.collection.insert_one(document)
             except Exception as e:
                 print(f"Error inserting document into {self.collection_name}: {e}")
