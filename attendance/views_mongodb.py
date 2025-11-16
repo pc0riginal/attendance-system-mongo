@@ -339,16 +339,40 @@ def sabha_add(request):
         result = sabhas_db.insert_one(sabha_data)
         sabha_id = str(result.inserted_id)
         
-        # Create default absent records for all devotees of this sabha type
-        all_devotees = devotees_db.find({'sabha_type': sabha_data['sabha_type']})
-        for devotee in all_devotees:
-            attendance_db.insert_one({
-                'devotee_id': devotee.get('devotee_id', 'N/A'),
-                'sabha_id': sabha_id,
-                'status': 'absent',
-                'notes': '',
-                'timestamp': datetime.now().isoformat()
-            })
+        # Create absent records in batches using threading
+        from concurrent.futures import ThreadPoolExecutor
+        import threading
+        
+        def create_absent_batch(devotee_batch, sabha_id):
+            batch_records = []
+            for devotee in devotee_batch:
+                batch_records.append({
+                    'devotee_id': devotee.get('devotee_id', 'N/A'),
+                    'sabha_id': sabha_id,
+                    'status': 'absent',
+                    'notes': '',
+                    'timestamp': datetime.now().isoformat()
+                })
+            if batch_records:
+                attendance_db.collection.insert_many(batch_records)
+        
+        # Get all devotees for this sabha type
+        all_devotees = list(devotees_db.find({'sabha_type': sabha_data['sabha_type']}))
+        
+        if all_devotees:
+            batch_size = 100  # Process 100 devotees per batch
+            batches = [all_devotees[i:i + batch_size] for i in range(0, len(all_devotees), batch_size)]
+            
+            # Process batches in parallel (max 4 threads)
+            with ThreadPoolExecutor(max_workers=4) as executor:
+                futures = [executor.submit(create_absent_batch, batch, sabha_id) for batch in batches]
+                
+                # Wait for all batches to complete
+                for future in futures:
+                    try:
+                        future.result(timeout=30)
+                    except Exception as e:
+                        print(f"Error creating absent records batch: {e}")
         
         messages.success(request, 'Sabha created successfully!')
         return redirect('sabha_list')
