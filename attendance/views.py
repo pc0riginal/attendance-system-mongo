@@ -35,6 +35,21 @@ def get_user_sabha_types(user):
         # On error, return empty list (no access)
         return []
 
+def can_user_delete(user):
+    """Check if user has delete permission"""
+    if user.is_superuser:
+        return True
+    
+    try:
+        from admin_panel.mongodb_models import AdminUserManager
+        admin_manager = AdminUserManager()
+        admin_user = admin_manager.get_user_by_username(user.username)
+        if admin_user:
+            return admin_user.can_delete
+        return False
+    except Exception:
+        return False
+
 @csrf_exempt
 def login_view(request):
     if request.method == 'POST':
@@ -147,7 +162,8 @@ def devotee_list(request):
     return render(request, 'attendance/devotee_list.html', {
         'page_obj': page_obj,
         'search_query': search_query,
-        'total_count': paginator.count
+        'total_count': paginator.count,
+        'can_delete': can_user_delete(request.user)
     })
 
 @login_required

@@ -517,14 +517,26 @@ def sabha_add(request):
                 'allowed_sabha_types': allowed_sabha_types
             })
         
+        start_time = request.POST.get('start_time')
+        end_time = request.POST.get('end_time')
+        
+        # Validate start time is before end time
+        if start_time >= end_time:
+            messages.error(request, 'Start time must be before end time.')
+            return render(request, 'attendance/sabha_form.html', {
+                'title': 'Create Sabha', 
+                'today': datetime.now().date().isoformat(),
+                'allowed_sabha_types': allowed_sabha_types
+            })
+        
         sabha_data = {
             'date': request.POST.get('date'),
             'sabha_type': sabha_type,
             'location': request.POST.get('location'),
             'xetra': request.POST.get('xetra'),
             'mandal': request.POST.get('mandal'),
-            'start_time': request.POST.get('start_time'),
-            'end_time': request.POST.get('end_time'),
+            'start_time': start_time,
+            'end_time': end_time,
             'created_at': datetime.now().isoformat(),
             'created_by': request.user.username
         }
