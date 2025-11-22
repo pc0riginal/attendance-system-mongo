@@ -1,9 +1,70 @@
 import dropbox
 import os
+import json
 from django.conf import settings
+from django.core.cache import cache
+import requests
 
-# Dropbox configuration
-DROPBOX_ACCESS_TOKEN = "sl.u.AGEk-3K-q84rJOdkh9Npm-MLBgQM3leAquB_2w4l6aVLX6Hi_aAz2tyVhbKEt1EBbuFoUQrt0w1rHI_10CvfhsHYAfzjnBKDFP8Ai3nFlgn8OgxY-HxLG0ulFspF6-t87FuCkv1rB3YSnI3C8xQ1Od4Qf2QmWl_9hgiNWTZsmFq6hs5S5h4BOpQGCNWRT4laJN-0qgpWicRifYnocxYmG7QfRWmphdXSaAlB3GX8VFXVSBtTqkJ-bu6K2gyq2-c83C6TV3Bl0Nz9O8xK6HhUjGh6tjVAQuTppLvHAxIK3ckR9e4Z3CfbRPbREzqIg1KzOH_G9ojL4RamnPCcUrEQ-Kva4Wc5lNYrB3vBJFY7JYuHbyCAdlMmZNIDkRCtgvfdBJpOEUJ0ibWvbrmcildb38hCngKf1agmjfYNcCd4U6lWlLivcV2TuTkGJSDOQgGL_0qraHEuKvpARb2M2W1VoOcL0d0hQ6Gz6Iv5YzIq2zmFmAxv37irrjGWkaeIzA_kiGzAi5ftBhetGy7_Nr0wty273byMIIyYhxbkzrD_KKvAZ2AS9EN0LMWd5yX-5HN-nkYz5rfN_4wdTc274fqdi4fgzURHFBosgOOBgBK2EhlXPeeNYyvhAU0QoMN_s5XT7sj7cbD79nvO4ApdbH0nFmZM08LIqrZKspvFgNKO_KgFhXAEtMW5gjAHHWu5I2kF_u55szfHZZRVJ3pti2FLEEMKipzEypvPyW4gFyxrmW4bgqEgHhLozpUBAK9qmYMNBz6VsVVTEcWBOGeoe0GydEiHoJAawTQIFZnqXZwJRST-kf1JTXbqJwLdKd9XbZr7SDu3U86zXJeVYppKDgEhot7a-T0a-NpK6w4reWqhuJWyJ4NqUOMaB16YF3zocgjBOutGz9c0cATzGOm-uqycBhdvglA3SWlUOYixojOw1EHkrT9zSG7uR1rJuzocxuRj0OTl4DOJaGEcLT-rVdV9R56pqI_5wsYILYzVlz59qXLL3lM1Z5lxAfGS6l3Pr0CLCYp6G7gg7mUJ6l85eqRBhcfXcBNroRLaZv1OeVJcXn2Wa8kmrPdzZ9dkkXEolUO_ursKHqXjhJ1wk8xnGrjZFNtTZ4LSHpjdYJ-M6K9vqooXF1TnF1K_YQkj-eYvXK3e8CstHo-MNGa6G1-JmEaRVjiFQvmV2mwJOLhdoE1tAS-DJSBkrBJJnJ3bWKOReTMVikdf16jp0SbHfL0csclS_GwyEA4UyYrEtIt6FychNVOYAbuDkQftTkrjY29UCuz_xBqCsAVHNKDh9arMk3zrX3Zjc1sAfldBXBJVZEN1tND3us8MNstbFYICe67YfN0XRr1me2S-hBBXZftS3CWwLNtKcx0ba6mzlt-kL-g5w8cXxJRBiYuhg3ml7ncJJKQ3ahCaJ4xqqqZEihapavNxzehCwhg3qpoI3pcyY1cOBDgUKWWolsCzkO0MHQNquHGmSh0o7yNm5RY8Pq6huL-BIgxa"
+# Dropbox OAuth configuration
+DROPBOX_APP_KEY = os.environ.get('DROPBOX_APP_KEY', '9y25xay0giwemdu')
+DROPBOX_APP_SECRET = os.environ.get('DROPBOX_APP_SECRET', 'ymiacrqpb6gi7on')
+DROPBOX_REFRESH_TOKEN = os.environ.get('DROPBOX_REFRESH_TOKEN', 'bAR0RLQxWBYAAAAAAAAAAWVm6C7yNwkvhWkxzC5CAh8XmeG2xx6ArnJa-d4PyPl1')
+
+# Current access token (will be auto-refreshed)
+CURRENT_ACCESS_TOKEN = "sl.u.AGGwuzSo0L6_V0FQyWLKlgMEe72iHR2ZGJ1oSLjnKFtlvoqLL8ippmvzOHVl0QQGM4Zo5FJZVmtdOzacdfuWh013RBr7Elab21nqLtgJQjM_zb7C2rVEGo6t7dmvt1eELnjtUkZY3hHMLWNfTK6NKH3Bw8qCILpaVDspVfR1pMdjly3G3ioeHjHsZNwba7C1YEW8d0pwFFv6v9jfJYHaw0bThLh1UMK6KZhhLgiBsjXasZHu5brPOake-mfbThZmtcHgU57j4v28Z3ypZQcmQOAb2oMOEc083Ca1Z43sFE-V3S8hWMM9lGTPGgveDwJ4dGZ6ZVrYrhqfhVlYqNzix0gGPPg8_gUscLDzryvhV3fe9ZrNMDpUf3QPQyhUyQZXqV2gH_S8d0VAUTeQ0lY5X5qyEl0_nB0yqucFqLtZ6EVb-wBGxXogzhTo2S7O320W0h1S1iAveNFVZ1RJ1aM0awWRJlVYqZncVjtjO3au-FacuBC7LHGi3L4YSZ2JB4CsX5wdkayHiav_SmLheKwYwfoYGxxMGSdya5QsGQvZLWwtSaIHD-Z1jtLX66BMTM34YaHZS2Y_0dlo7-GL3L0oFxykpyk-V3659MR1dfI7RusZYgJOZCxOFeq3JUiOlzLjMlgHON13wMvrn4n2KteFDmBuuqeEVTWP5sgUZv0EwtSVJtHlNoMHlp6GsPdHPM4ttqC5y3Q-xsIu1XsGzs-tVVI_eMVWOjVfi15gs-I2oQ1cFCj2IodpNy08BDy8iCjeOPvweBp9Hznp78XMNRE5_1T-_HGFdFgdbyZtBc-2RaCzSKPCcaBI93Gy0lUWZCaeumvyXylk5T-DBzGdGCmRgLhFpFq1pi4wjD0ix2B1AbasQjnIqxN8xmBDNS_40VJU0bWUuunQ5QMQFl5kaX27GRcXK3IanAT5f1NZ7g9PC3Iuy5ExEVFlMpO2XUN5ermW2xF7tIx7ALQR7-9DHuIIHt9PRcVz13AORMiogcAxEm1gLAx5ntaCVu398T5DwayoZDB8kfVVVblAtwr41ME3EUrgDQ8nTj7N-qzXqiyKl-mYUDH_qipvJwNa50b9SD9cQ7edcJqDFlzFPeXTnkldtkNA3U6cvaGOFELuj99PZnqqaiEI3itoHb07Ajo6frVDpoy02i3ptVgvAAd-W3UZtUeI3AgSNSpWr10peYTJmnCOjQyhYVRAivKTUIm5wYlEcAGnnbjC163v1MqZdznV55mEjy7s-qeTtJWhOTvd7vwYzZOLUcEQ-Afp1ELnBmVxMHSPOpd7whBIyveySB589NHbNDVpskpszHMcFjgiArd_X-HEPceVgneBzN5IGZxW-9NhQZP8rmGu04dJ6HBzDQZkU47X8089mVAhsB_NLtIJAf_YQOBK356Zj0PaVUCUfcQfVUArdchGMLHRdN6ne1CYJ86kz7INIb8-9HTLyLGiRjlbrjTDOJJOD0VGybZc01DocwHdjxiI6_DAF_COepjV"
+
+
+def generate_new_access_token():
+    """Generate new access token when current one expires."""
+    try:
+        # Try to refresh using refresh token if available
+        if DROPBOX_REFRESH_TOKEN and DROPBOX_REFRESH_TOKEN != 'your_refresh_token_here':
+            response = requests.post('https://api.dropbox.com/oauth2/token', data={
+                'grant_type': 'refresh_token',
+                'refresh_token': DROPBOX_REFRESH_TOKEN,
+                'client_id': DROPBOX_APP_KEY,
+                'client_secret': DROPBOX_APP_SECRET
+            })
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                new_token = token_data['access_token']
+                cache.set('dropbox_access_token', new_token, timeout=14400)  # 4 hours
+                print(f"SUCCESS: Generated new access token")
+                return new_token
+            else:
+                print(f"ERROR: Token refresh failed: {response.status_code} - {response.text}")
+        
+        # Fallback: Use current token and hope it works
+        print("WARNING: Using fallback access token")
+        return CURRENT_ACCESS_TOKEN
+        
+    except Exception as e:
+        print(f"ERROR: Token generation error: {e}")
+        return CURRENT_ACCESS_TOKEN
+
+def get_dropbox_client():
+    """Get Dropbox client with auto-refreshed token."""
+    # Try cached token first
+    token = cache.get('dropbox_access_token')
+    
+    if not token:
+        token = generate_new_access_token()
+    
+    try:
+        dbx = dropbox.Dropbox(token)
+        # Test the token by making a simple API call
+        dbx.users_get_current_account()
+        return dbx
+    except (dropbox.exceptions.AuthError, dropbox.exceptions.BadInputError) as e:
+        print(f"INFO: Token expired, generating new one: {e}")
+        # Token expired or invalid, generate new one
+        token = generate_new_access_token()
+        return dropbox.Dropbox(token)
+    except Exception as e:
+        print(f"ERROR: Dropbox client error: {e}")
+        # Return client with current token as fallback
+        return dropbox.Dropbox(CURRENT_ACCESS_TOKEN)
 def get_direct_dropbox_link(shared_url):
     """Convert Dropbox shared link to direct link."""
     if "dropbox.com" in shared_url:
@@ -15,7 +76,7 @@ def get_direct_dropbox_link(shared_url):
 def upload_devotee_photo(photo_file, devotee_data):
     """Upload devotee photo to Dropbox and return direct URL."""
     try:
-        dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+        dbx = get_dropbox_client()
         
         # Create filename from devotee data: first_last_number
         name_parts = devotee_data['name'].strip().split()
