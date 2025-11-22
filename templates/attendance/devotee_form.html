@@ -75,10 +75,21 @@
                             <div class="mb-3">
                                 <label class="form-label">Sabha Type</label>
                                 <select name="sabha_type" class="form-select" required>
-                                    <option value="bal" {% if devotee.sabha_type == 'bal' %}selected{% endif %}>Bal Sabha</option>
-                                    <option value="yuvak" {% if devotee.sabha_type == 'yuvak' %}selected{% endif %}>Yuvak Sabha</option>
-                                    <option value="mahila" {% if devotee.sabha_type == 'mahila' %}selected{% endif %}>Mahila Sabha</option>
-                                    <option value="sanyukt" {% if devotee.sabha_type == 'sanyukt' %}selected{% endif %}>Sanyukt Sabha</option>
+                                    {% if allowed_sabha_types %}
+                                        {% for sabha_type in allowed_sabha_types %}
+                                            {% if sabha_type == 'bal' %}
+                                                <option value="bal" {% if devotee.sabha_type == 'bal' %}selected{% endif %}>Bal Sabha</option>
+                                            {% elif sabha_type == 'yuvak' %}
+                                                <option value="yuvak" {% if devotee.sabha_type == 'yuvak' %}selected{% endif %}>Yuvak Sabha</option>
+                                            {% elif sabha_type == 'mahila' %}
+                                                <option value="mahila" {% if devotee.sabha_type == 'mahila' %}selected{% endif %}>Mahila Sabha</option>
+                                            {% elif sabha_type == 'sanyukt' %}
+                                                <option value="sanyukt" {% if devotee.sabha_type == 'sanyukt' %}selected{% endif %}>Sanyukt Sabha</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="">No sabha types available</option>
+                                    {% endif %}
                                 </select>
                             </div>
                         </div>

@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'attendance',
+    'admin_panel',
 ]
 
 MIDDLEWARE = [
@@ -64,7 +65,7 @@ MONGODB_NAME = os.environ.get('MONGODB_NAME', 'temple_attendance')
 
 # MongoDB Client will be initialized in mongodb_utils.py
 
-# SQLite for Django admin, auth, sessions
+# SQLite for Django's built-in auth/sessions only - our models use MongoDB
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -98,7 +99,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Static files serving
 if not DEBUG:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 else:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
@@ -107,6 +108,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Authentication backends
+AUTHENTICATION_BACKENDS = [
+    'admin_panel.auth_backend.MongoDBAuthBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # Logging configuration
 LOGGING = {

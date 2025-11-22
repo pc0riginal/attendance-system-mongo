@@ -385,8 +385,12 @@
                     <a class="nav-link" href="{% url 'dashboard' %}"><i class="bi bi-speedometer2"></i> Dashboard</a>
                     <a class="nav-link" href="{% url 'devotee_list' %}"><i class="bi bi-people"></i> Devotees</a>
                     <a class="nav-link" href="{% url 'sabha_list' %}"><i class="bi bi-calendar-event"></i> Sabhas</a>
+                    {% if user.is_superuser %}
                     <a class="nav-link" href="{% url 'upload_devotees' %}"><i class="bi bi-cloud-upload"></i> Upload</a>
                     <a class="nav-link" href="{% url 'attendance_report' %}"><i class="bi bi-graph-up"></i> Reports</a>
+                    <a class="nav-link" href="{% url 'admin_dashboard' %}"><i class="bi bi-shield-check"></i> Admin Panel</a>
+                    {% endif %}
+                    <a class="nav-link" href="{% url 'user_profile' %}"><i class="bi bi-person-circle"></i> Profile</a>
                     <button class="nav-link btn btn-link" onclick="toggleDarkMode()" style="border: none; background: none;"><i class="bi bi-moon-fill" id="theme-icon"></i> <span id="theme-text">Dark</span></button>
                     <a class="nav-link" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
                 </div>
@@ -425,14 +429,48 @@
                 <i class="bi bi-calendar-event"></i>
                 <span>Sabhas</span>
             </a>
-            <a href="{% url 'upload_devotees' %}" class="bottom-tab{% if 'upload' in request.resolver_match.url_name %} active{% endif %}">
-                <i class="bi bi-cloud-upload"></i>
-                <span>Upload</span>
+            <a href="{% url 'user_profile' %}" class="bottom-tab{% if 'profile' in request.resolver_match.url_name %} active{% endif %}">
+                <i class="bi bi-person-circle"></i>
+                <span>Profile</span>
             </a>
-            <a href="{% url 'attendance_report' %}" class="bottom-tab{% if 'report' in request.resolver_match.url_name %} active{% endif %}">
-                <i class="bi bi-graph-up"></i>
-                <span>Reports</span>
-            </a>
+            {% if user.is_superuser %}
+            <button class="bottom-tab" onclick="toggleMoreMenu()" style="border: none; background: none;">
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+            </button>
+            {% else %}
+            <button class="bottom-tab" onclick="toggleDarkMode()" style="border: none; background: none;">
+                <i class="bi bi-moon-fill" id="mobile-theme-icon"></i>
+                <span id="mobile-theme-text">Dark</span>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- More Menu Modal for Admin -->
+    {% if user.is_superuser %}
+    <div class="modal fade" id="moreMenuModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">More Options</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'upload_devotees' %}" class="list-group-item list-group-item-action py-3">
+                            <i class="bi bi-cloud-upload me-3"></i>Upload Devotees
+                        </a>
+                        <a href="{% url 'attendance_report' %}" class="list-group-item list-group-item-action py-3">
+                            <i class="bi bi-graph-up me-3"></i>Reports
+                        </a>
+                        <button class="list-group-item list-group-item-action py-3" onclick="toggleDarkMode()" style="border: none; text-align: left;">
+                            <i class="bi bi-moon-fill me-3" id="modal-theme-icon"></i><span id="modal-theme-text">Dark Mode</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     {% endif %}
@@ -446,18 +484,47 @@
         const html = document.documentElement;
         const icon = document.getElementById('theme-icon');
         const text = document.getElementById('theme-text');
+        const mobileIcon = document.getElementById('mobile-theme-icon');
+        const mobileText = document.getElementById('mobile-theme-text');
+        const modalIcon = document.getElementById('modal-theme-icon');
+        const modalText = document.getElementById('modal-theme-text');
         
         if (html.getAttribute('data-theme') === 'dark') {
             html.removeAttribute('data-theme');
-            icon.className = 'bi bi-moon-fill';
-            text.textContent = 'Dark';
+            if (icon && text) {
+                icon.className = 'bi bi-moon-fill';
+                text.textContent = 'Dark';
+            }
+            if (mobileIcon && mobileText) {
+                mobileIcon.className = 'bi bi-moon-fill';
+                mobileText.textContent = 'Dark';
+            }
+            if (modalIcon && modalText) {
+                modalIcon.className = 'bi bi-moon-fill';
+                modalText.textContent = 'Dark Mode';
+            }
             localStorage.setItem('theme', 'light');
         } else {
             html.setAttribute('data-theme', 'dark');
-            icon.className = 'bi bi-sun-fill';
-            text.textContent = 'Light';
+            if (icon && text) {
+                icon.className = 'bi bi-sun-fill';
+                text.textContent = 'Light';
+            }
+            if (mobileIcon && mobileText) {
+                mobileIcon.className = 'bi bi-sun-fill';
+                mobileText.textContent = 'Light';
+            }
+            if (modalIcon && modalText) {
+                modalIcon.className = 'bi bi-sun-fill';
+                modalText.textContent = 'Light Mode';
+            }
             localStorage.setItem('theme', 'dark');
         }
+    }
+    
+    function toggleMoreMenu() {
+        const modal = new bootstrap.Modal(document.getElementById('moreMenuModal'));
+        modal.show();
     }
     
     // Load saved theme immediately
@@ -474,9 +541,21 @@
         if (savedTheme === 'dark') {
             const icon = document.getElementById('theme-icon');
             const text = document.getElementById('theme-text');
+            const mobileIcon = document.getElementById('mobile-theme-icon');
+            const mobileText = document.getElementById('mobile-theme-text');
+            const modalIcon = document.getElementById('modal-theme-icon');
+            const modalText = document.getElementById('modal-theme-text');
             if (icon && text) {
                 icon.className = 'bi bi-sun-fill';
                 text.textContent = 'Light';
+            }
+            if (mobileIcon && mobileText) {
+                mobileIcon.className = 'bi bi-sun-fill';
+                mobileText.textContent = 'Light';
+            }
+            if (modalIcon && modalText) {
+                modalIcon.className = 'bi bi-sun-fill';
+                modalText.textContent = 'Light Mode';
             }
         }
     });

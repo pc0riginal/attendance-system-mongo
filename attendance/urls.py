@@ -33,4 +33,7 @@ urlpatterns = [
     # Delete URLs
     path('devotees/delete/<str:pk>/', views.devotee_delete, name='devotee_delete'),
     path('sabhas/delete/<str:pk>/', views.sabha_delete, name='sabha_delete'),
+    
+    # Profile
+    path('profile/', views.user_profile, name='user_profile'),
 ]

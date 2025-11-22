@@ -73,6 +73,9 @@
                                 <th class="fw-semibold">Xetra</th>
                                 <th class="fw-semibold">Mandal</th>
                                 <th class="fw-semibold">Time</th>
+                                {% if is_admin %}
+                                <th class="fw-semibold">Created</th>
+                                {% endif %}
                                 <th class="fw-semibold">Actions</th>
                             </tr>
                         </thead>
@@ -87,6 +90,12 @@
                                     <td>{{ sabha.xetra }}</td>
                                     <td>{{ sabha.mandal }}</td>
                                     <td class="text-muted">{{ sabha.start_time }} - {{ sabha.end_time }}</td>
+                                    {% if is_admin %}
+                                    <td class="text-muted small">
+                                        {% if sabha.created_by %}<div>By: {{ sabha.created_by }}</div>{% endif %}
+                                        {% if sabha.created_at %}<div>{{ sabha.created_at|date:"M d, Y H:i" }}</div>{% endif %}
+                                    </td>
+                                    {% endif %}
                                     <td>
                                         <div class="d-flex gap-2">
                                             <a href="{% url 'mark_attendance' sabha.id %}" class="btn btn-temple btn-sm">
