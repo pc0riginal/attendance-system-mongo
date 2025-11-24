@@ -4,6 +4,84 @@ from .mongodb_utils import MongoDBManager
 from bson import ObjectId
 from datetime import datetime
 
+class MandalManager:
+    def __init__(self):
+        self.mongodb_manager = MongoDBManager('mandals')
+    
+    def all(self):
+        docs = self.mongodb_manager.find(sort=[('display_name', 1)])
+        return [Mandal.from_dict(doc) for doc in docs]
+    
+    def filter(self, **kwargs):
+        query = {}
+        if 'name' in kwargs:
+            query['name'] = kwargs['name']
+        docs = self.mongodb_manager.find(query)
+        return [Mandal.from_dict(doc) for doc in docs]
+    
+    def get(self, **kwargs):
+        query = {}
+        if 'pk' in kwargs:
+            query['_id'] = ObjectId(kwargs['pk'])
+        if 'name' in kwargs:
+            query['name'] = kwargs['name']
+        docs = self.mongodb_manager.find(query)
+        if docs:
+            return Mandal.from_dict(docs[0])
+        raise Mandal.DoesNotExist()
+    
+    def count(self):
+        return self.mongodb_manager.count()
+
+class Mandal:
+    class DoesNotExist(Exception):
+        pass
+    
+    objects = MandalManager()
+    
+    def __init__(self, name=None, display_name=None, created_at=None, created_by=None, _id=None):
+        self._id = _id or ObjectId()
+        self.name = name
+        self.display_name = display_name
+        self.created_at = created_at or datetime.now()
+        self.created_by = created_by
+    
+    @property
+    def pk(self):
+        return str(self._id)
+    
+    @property
+    def id(self):
+        return str(self._id)
+    
+    def save(self):
+        mongodb_manager = MongoDBManager('mandals')
+        doc = {
+            'name': self.name,
+            'display_name': self.display_name,
+            'created_at': self.created_at,
+            'created_by': self.created_by
+        }
+        if hasattr(self, '_id') and self._id:
+            mongodb_manager.update_one({'_id': self._id}, doc)
+        else:
+            result = mongodb_manager.insert_one(doc)
+            if result:
+                self._id = result.inserted_id
+    
+    @classmethod
+    def from_dict(cls, doc):
+        return cls(
+            _id=doc.get('_id'),
+            name=doc.get('name'),
+            display_name=doc.get('display_name'),
+            created_at=doc.get('created_at'),
+            created_by=doc.get('created_by')
+        )
+    
+    def __str__(self):
+        return self.display_name or self.name
+
 class DevoteeManager:
     def __init__(self):
         self.mongodb_manager = MongoDBManager('devotees')
@@ -49,12 +127,10 @@ class Devotee:
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
     ]
     
-    MANDAL_CHOICES = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman'),
-    ]
+    @classmethod
+    def get_mandal_choices(cls):
+        from .mandal_utils import get_mandal_choices
+        return get_mandal_choices()
     
     GENDER_CHOICES = [
         ('male', 'Male'),
@@ -231,12 +307,10 @@ class Sabha:
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
     ]
     
-    MANDAL_CHOICES = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman'),
-    ]
+    @classmethod
+    def get_mandal_choices(cls):
+        from .mandal_utils import get_mandal_choices
+        return get_mandal_choices()
     
     class DoesNotExist(Exception):
         pass
@@ -413,3 +487,6 @@ class Attendance:
         return f"{self.devotee_id} - {self.sabha_id} - {self.get_status_display()}"
 
 # UserProfile removed - all user data stored in MongoDB via admin_panel
+
+# Export Mandal model for easy import
+__all__ = ['Devotee', 'Sabha', 'Attendance', 'Mandal']

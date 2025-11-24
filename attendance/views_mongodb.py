@@ -12,6 +12,7 @@ import json
 
 from .mongodb_utils import MongoDBManager
 from .utils_photo import generate_initials_photo
+from .mandal_utils import get_mandal_choices, get_mandal_names
 
 # Initialize MongoDB managers
 devotees_db = MongoDBManager('devotees')
@@ -57,7 +58,7 @@ def dashboard(request):
     # Get user's allowed mandals
     def get_user_mandals(user):
         if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+            return get_mandal_names()
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -133,7 +134,7 @@ def devotee_list(request):
     # Get user's allowed mandals
     def get_user_mandals(user):
         if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+            return get_mandal_names()
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -164,7 +165,13 @@ def devotee_list(request):
     
     # Get all matching documents and sort by devotee_id as integer
     all_devotees = list(devotees_db.find(query))
-    all_devotees.sort(key=lambda x: int(x.get('devotee_id', 0)) if str(x.get('devotee_id', '')).isdigit() else 0)
+    def sort_key(x):
+        devotee_id = x.get('devotee_id', '')
+        try:
+            return int(devotee_id.split('-')[-1]) if '-' in devotee_id else 0
+        except:
+            return 0
+    all_devotees.sort(key=sort_key)
     devotees_raw = all_devotees[skip:skip + per_page]
     devotees = []
     for devotee in devotees_raw:
@@ -250,7 +257,7 @@ def devotee_add(request):
     
     def get_user_mandals(user):
         if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+            return get_mandal_names()
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -435,7 +442,7 @@ def devotee_edit(request, pk):
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
                 'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_mandals': get_mandal_names()
             })
         
         # Check if user can assign this sabha type
@@ -447,7 +454,7 @@ def devotee_edit(request, pk):
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
                 'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_mandals': get_mandal_names()
             })
         
         update_data = {
@@ -502,7 +509,7 @@ def devotee_edit(request, pk):
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
                 'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_mandals': get_mandal_names()
             })
         
         print(f"Database update result: {update_result.modified_count if update_result else 0} documents modified")
@@ -516,7 +523,7 @@ def devotee_edit(request, pk):
         'title': 'Edit Devotee', 
         'today': datetime.now().date().isoformat(),
         'allowed_sabha_types': allowed_sabha_types,
-        'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+        'allowed_mandals': get_mandal_names()
     })
 
 @login_required
@@ -543,7 +550,7 @@ def sabha_list(request):
     # Get user's allowed mandals
     def get_user_mandals(user):
         if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+            return get_mandal_names()
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -629,7 +636,7 @@ def sabha_add(request):
     
     def get_user_mandals(user):
         if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+            return get_mandal_names()
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -764,7 +771,13 @@ def mark_attendance(request, sabha_id):
     
     # Get all matching documents and sort by devotee_id as integer
     all_devotees = list(devotees_db.find(query))
-    all_devotees.sort(key=lambda x: int(x.get('devotee_id', 0)) if str(x.get('devotee_id', '')).isdigit() else 0)
+    def sort_key(x):
+        devotee_id = x.get('devotee_id', '')
+        try:
+            return int(devotee_id.split('-')[-1]) if '-' in devotee_id else 0
+        except:
+            return 0
+    all_devotees.sort(key=sort_key)
     devotees_raw = all_devotees[skip:skip + per_page]
     devotees = []
     for devotee in devotees_raw:
@@ -1750,7 +1763,7 @@ def user_profile(request):
     except:
         admin_user = None
     
-    sabha_choices = [('bal', 'Bal Sabha'), ('yuvak', 'Yuvak Sabha'), ('mahila', 'Mahila Sabha'), ('sanyukt', 'Sanyukt Sabha')]
+    sabha_choices = [('bal', 'Bal Sabha'), ('balika', 'Balika Sabha'), ('yuvak', 'Yuvak Sabha'), ('yuvati', 'Yuvati Sabha'), ('mahila', 'Mahila Sabha'), ('sanyukt-purush', 'Sanyukt Purush Sabha'), ('sanyukt-mahila', 'Sanyukt Mahila Sabha')]
     
     context = {
         'user': request.user,

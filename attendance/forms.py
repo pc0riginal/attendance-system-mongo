@@ -12,13 +12,6 @@ class DevoteeMongoForm(forms.Form):
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
     ]
     
-    MANDAL_CHOICES = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman'),
-    ]
-    
     GENDER_CHOICES = [
         ('male', 'Male'),
         ('female', 'Female'),
@@ -30,7 +23,7 @@ class DevoteeMongoForm(forms.Form):
         ('karyakar', 'Karyakar'),
     ]
     
-    mandal = forms.ChoiceField(choices=MANDAL_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    mandal = forms.ChoiceField(choices=[], required=False, widget=forms.Select(attrs={'class': 'form-control'}))
     sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     devotee_id = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated based on mandal-sabha', 'readonly': True}))
     devotee_type = forms.ChoiceField(choices=DEVOTEE_TYPE_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
@@ -55,6 +48,14 @@ class DevoteeMongoForm(forms.Form):
     def __init__(self, *args, **kwargs):
         allowed_sabha_types = kwargs.pop('allowed_sabha_types', [])
         super().__init__(*args, **kwargs)
+        
+        # Load dynamic mandal choices
+        from .mandal_utils import get_mandal_choices
+        mandal_choices = get_mandal_choices()
+        if not mandal_choices:
+            mandal_choices = [('', 'No mandals available - Please add mandals first')]
+        self.fields['mandal'].choices = mandal_choices
+        
         if allowed_sabha_types:
             self.fields['sabha_type'].choices = [
                 (choice[0], choice[1]) for choice in self.SABHA_CHOICES 
@@ -74,16 +75,9 @@ class SabhaForm(forms.Form):
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
     ]
     
-    MANDAL_CHOICES = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman'),
-    ]
-    
     date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
     sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
-    mandal = forms.ChoiceField(choices=MANDAL_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    mandal = forms.ChoiceField(choices=[], required=False, widget=forms.Select(attrs={'class': 'form-control'}))
     location = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
     xetra = forms.CharField(initial='Palanpur', widget=forms.TextInput(attrs={'class': 'form-control', 'value': 'Palanpur'}))
     start_time = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}))
@@ -92,6 +86,14 @@ class SabhaForm(forms.Form):
     def __init__(self, *args, **kwargs):
         allowed_sabha_types = kwargs.pop('allowed_sabha_types', [])
         super().__init__(*args, **kwargs)
+        
+        # Load dynamic mandal choices
+        from .mandal_utils import get_mandal_choices
+        mandal_choices = get_mandal_choices()
+        if not mandal_choices:
+            mandal_choices = [('', 'No mandals available - Please add mandals first')]
+        self.fields['mandal'].choices = mandal_choices
+        
         if allowed_sabha_types:
             self.fields['sabha_type'].choices = [
                 (choice[0], choice[1]) for choice in self.SABHA_CHOICES 
@@ -111,13 +113,6 @@ class DevoteeUploadForm(forms.Form):
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
     ]
     
-    MANDAL_CHOICES = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman'),
-    ]
-    
     excel_file = forms.FileField(
         label='Excel File',
         help_text='Upload .xlsx or .xls file with devotee data',
@@ -127,7 +122,7 @@ class DevoteeUploadForm(forms.Form):
         })
     )
     mandal_filter = forms.ChoiceField(
-        choices=[('', 'All Mandals')] + MANDAL_CHOICES,
+        choices=[('', 'All Mandals')],
         required=False,
         label='Mandal Filter',
         widget=forms.Select(attrs={'class': 'form-control'})
@@ -138,6 +133,18 @@ class DevoteeUploadForm(forms.Form):
         label='Sabha Type Filter',
         widget=forms.Select(attrs={'class': 'form-control'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Load dynamic mandal choices
+        from .mandal_utils import get_mandal_choices
+        mandal_choices = get_mandal_choices()
+        if mandal_choices:
+            mandal_choices = [('', 'All Mandals')] + mandal_choices
+        else:
+            mandal_choices = [('', 'No mandals available')]
+        self.fields['mandal_filter'].choices = mandal_choices
 
     def clean_excel_file(self):
         file = self.cleaned_data['excel_file']

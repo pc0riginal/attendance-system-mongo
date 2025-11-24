@@ -51,7 +51,11 @@ def validate_mandal(mandal):
         return False, "Mandal is required"
     
     mandal_str = str(mandal).lower().strip()
-    valid_mandals = ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+    
+    # Get valid mandals from database
+    from .mandal_utils import get_mandal_names
+    valid_mandals = get_mandal_names()
+    
     if mandal_str not in valid_mandals:
         return False, f"Invalid mandal. Must be one of: {', '.join(valid_mandals)}"
     

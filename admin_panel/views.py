@@ -5,6 +5,7 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import login, logout
 from .mongodb_models import AdminUserManager
+from attendance.mandal_utils import get_mandal_choices
 import json
 
 def is_superuser(user):
@@ -66,12 +67,7 @@ def create_user(request):
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha')
     ]
     
-    mandal_choices = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman')
-    ]
+    mandal_choices = get_mandal_choices()
     
     return render(request, 'admin_panel/create_user.html', {
         'sabha_choices': sabha_choices,
@@ -124,12 +120,7 @@ def edit_user(request, user_id):
         ('sanyukt-mahila', 'Sanyukt Mahila Sabha')
     ]
     
-    mandal_choices = [
-        ('sardarnagar', 'Sardarnagar'),
-        ('akeshan', 'Akeshan'),
-        ('dharti', 'Dharti'),
-        ('gathaman', 'Gathaman')
-    ]
+    mandal_choices = get_mandal_choices()
     
     return render(request, 'admin_panel/edit_user.html', {
         'admin_user': admin_user,

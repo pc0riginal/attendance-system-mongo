@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views_mongodb as views
+from . import mandal_views
 
 urlpatterns = [
     path('', views.dashboard, name='dashboard'),
@@ -36,4 +37,9 @@ urlpatterns = [
     
     # Profile
     path('profile/', views.user_profile, name='user_profile'),
+    
+    # Mandal URLs
+    path('mandals/', mandal_views.mandal_list, name='mandal_list'),
+    path('mandals/add/', mandal_views.mandal_add, name='mandal_add'),
+    path('mandals/delete/<str:pk>/', mandal_views.mandal_delete, name='mandal_delete'),
 ]

@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Temple Attendance{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0"><i class="bi bi-building"></i> {{ title }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Mandal Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" required 
+                                   placeholder="e.g., sardarnagar" style="text-transform: lowercase;">
+                            <div class="form-text">Internal name (lowercase, no spaces)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="display_name" class="form-label">Display Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="display_name" name="display_name" required 
+                                   placeholder="e.g., Sardar Nagar">
+                            <div class="form-text">Name shown to users</div>
+                        </div>
+                        
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-temple">
+                                <i class="bi bi-check-circle"></i> Save Mandal
+                            </button>
+                            <a href="{% url 'mandal_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('name').addEventListener('input', function() {
+    this.value = this.value.toLowerCase().replace(/\s+/g, '');
+});
+</script>
+{% endblock %}
