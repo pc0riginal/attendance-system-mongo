@@ -429,10 +429,17 @@
                 <i class="bi bi-calendar-event"></i>
                 <span>Sabhas</span>
             </a>
+            {% if user.is_superuser %}
+            <button class="bottom-tab" onclick="toggleMoreMenu()" style="border: none; background: none;">
+                <i class="bi bi-three-dots"></i>
+                <span>More</span>
+            </button>
+            {% else %}
             <a href="{% url 'user_profile' %}" class="bottom-tab{% if 'profile' in request.resolver_match.url_name %} active{% endif %}">
                 <i class="bi bi-person-circle"></i>
                 <span>Profile</span>
             </a>
+            {% endif %}
             <a href="{% url 'logout' %}" class="bottom-tab">
                 <i class="bi bi-box-arrow-right"></i>
                 <span>Logout</span>
@@ -460,6 +467,9 @@
                         </a>
                         <a href="{% url 'admin_dashboard' %}" class="list-group-item list-group-item-action py-3">
                             <i class="bi bi-shield-check me-3"></i>Admin Panel
+                        </a>
+                        <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action py-3">
+                            <i class="bi bi-person-circle me-3"></i>Profile
                         </a>
                         <button class="list-group-item list-group-item-action py-3" onclick="toggleDarkMode()" style="border: none; text-align: left;">
                             <i class="bi bi-moon-fill me-3" id="modal-theme-icon"></i><span id="modal-theme-text">Dark Mode</span>
