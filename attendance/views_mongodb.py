@@ -39,7 +39,7 @@ def dashboard(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal','balika','yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -109,7 +109,7 @@ def devotee_list(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'balika', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -556,20 +556,57 @@ def sabha_list(request):
     
     allowed_mandals = get_user_mandals(request.user)
     
-    # Admin users see all sabhas, regular users see only their mandal+sabha combinations
+    # Pagination
+    page = int(request.GET.get('page', 1))
+    per_page = 10
+    
+    # Build query
     if request.user.is_superuser:
-        sabhas_raw = sabhas_db.find(sort=[('date', -1)])
+        query = {}
     else:
-        sabhas_raw = sabhas_db.find({'sabha_type': {'$in': allowed_sabha_types}, 'mandal': {'$in': allowed_mandals}}, sort=[('date', -1)])
+        query = {'sabha_type': {'$in': allowed_sabha_types}, 'mandal': {'$in': allowed_mandals}}
+    
+    # Get total count
+    total_count = sabhas_db.count(query)
+    skip = (page - 1) * per_page
+    
+    # Get sabhas with pagination
+    sabhas_raw = sabhas_db.find(query, sort=[('date', -1)], skip=skip, limit=per_page)
     
     sabhas = []
     for sabha in sabhas_raw:
         sabha['id'] = str(sabha['_id'])
         sabha['get_sabha_type_display'] = sabha.get('sabha_type', '').title() + ' Sabha'
+        sabha['is_finalized'] = sabha.get('is_finalized', False)
         sabhas.append(sabha)
+    
+    # Pagination info
+    total_pages = (total_count + per_page - 1) // per_page
+    has_previous = page > 1
+    has_next = page < total_pages
+    
+    # Create pagination object
+    class PaginationObj:
+        def __init__(self, items, page, total_pages, has_previous, has_next, total_count):
+            self.object_list = items
+            self.number = page
+            self.paginator = type('Paginator', (), {
+                'num_pages': total_pages,
+                'count': total_count
+            })()
+            self.has_previous = lambda: has_previous
+            self.has_next = lambda: has_next
+            self.previous_page_number = lambda: page - 1 if has_previous else None
+            self.next_page_number = lambda: page + 1 if has_next else None
+        
+        def __iter__(self):
+            return iter(self.object_list)
+    
+    page_obj = PaginationObj(sabhas, page, total_pages, has_previous, has_next, total_count)
     
     context = {
         'sabhas': sabhas,
+        'page_obj': page_obj,
         'is_admin': request.user.is_superuser
     }
     return render(request, 'attendance/sabha_list.html', context)
@@ -579,7 +616,7 @@ def sabha_add(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'balika', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -835,16 +872,22 @@ def mark_attendance(request, sabha_id):
         'sabha_id': sabha_id,
         'devotee_id': {'$in': devotee_number_ids}
     }):
+        # Map by both devotee_id and MongoDB _id for template access
         existing_attendance[att['devotee_id']] = att
+        # Find the devotee with this devotee_id and map by MongoDB _id too
+        for devotee in devotees:
+            if devotee.get('devotee_id') == att['devotee_id']:
+                existing_attendance[devotee['id']] = att
+                break
     
     # Add default absent status for devotees without records
     for devotee in devotees:
         devotee_number_id = devotee.get('devotee_id', 'N/A')
+        devotee_mongo_id = devotee['id']
         if devotee_number_id not in existing_attendance:
-            existing_attendance[devotee_number_id] = {
-                'status': 'absent',
-                'notes': ''
-            }
+            default_att = {'status': 'absent', 'notes': ''}
+            existing_attendance[devotee_number_id] = default_att
+            existing_attendance[devotee_mongo_id] = default_att
     
 
     
@@ -960,6 +1003,7 @@ def attendance_analytics(request):
 @login_required
 def attendance_report(request):
     sabha_type = request.GET.get('sabha_type')
+    mandal = request.GET.get('mandal')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     status_filter = request.GET.get('status')
@@ -967,10 +1011,12 @@ def attendance_report(request):
     page = int(request.GET.get('page', 1))
     per_page = 20
     
-    # Build sabha query first
-    sabha_query = {}
+    # Build sabha query first - only finalized sabhas
+    sabha_query = {'$and': [{'is_finalized': {'$exists': True}}, {'is_finalized': True}]}
     if sabha_type:
         sabha_query['sabha_type'] = sabha_type
+    if mandal:
+        sabha_query['mandal'] = mandal
     if date_from:
         sabha_query.setdefault('date', {})['$gte'] = date_from
     if date_to:
@@ -1081,6 +1127,14 @@ def attendance_report(request):
                     clean_record[key] = value
             serializable_records.append(clean_record)
         
+        # Get available mandals for AJAX response - only from sabhas with attendance
+        available_mandals = []
+        if attendance_list:
+            sabha_ids_with_attendance = set(record['sabha_id'] for record in attendance_list)
+            mandal_sabhas = sabhas_db.find({'_id': {'$in': [ObjectId(sid) for sid in sabha_ids_with_attendance]}}, {'mandal': 1})
+            unique_mandals = set(s['mandal'] for s in mandal_sabhas if 'mandal' in s)
+            available_mandals = [(m, m.title()) for m in sorted(unique_mandals)]
+        
         return JsonResponse({
             'records': serializable_records,
             'total_count': total_count,
@@ -1090,7 +1144,8 @@ def attendance_report(request):
             'has_next': has_next,
             'present_count': present_count,
             'absent_count': absent_count,
-            'late_count': late_count
+            'late_count': late_count,
+            'available_mandals': available_mandals
         })
     
     # Convert ObjectId to string for template rendering
@@ -1100,10 +1155,19 @@ def attendance_report(request):
     
     page_obj = PaginationObj(attendance_list, page, total_pages, has_previous, has_next, total_count)
     
+    # Get available mandals only from sabhas that have attendance records
+    available_mandals = []
+    if attendance_list:  # Only if there are actual attendance records
+        sabha_ids_with_attendance = set(record['sabha_id'] for record in attendance_list)
+        mandal_sabhas = sabhas_db.find({'_id': {'$in': [ObjectId(sid) for sid in sabha_ids_with_attendance]}}, {'mandal': 1})
+        unique_mandals = set(s['mandal'] for s in mandal_sabhas if 'mandal' in s)
+        available_mandals = [(m, m.title()) for m in sorted(unique_mandals)]
+    
     context = {
         'page_obj': page_obj,
-        'sabha_types': [('bal', 'Bal Sabha'), ('yuvak', 'Yuvak Sabha'), ('mahila', 'Mahila Sabha'), ('sanyukt', 'Sanyukt Sabha')],
-        'filters': {'sabha_type': sabha_type, 'date_from': date_from, 'date_to': date_to, 'status': status_filter},
+        'sabha_types': [('bal', 'Bal Sabha'), ('balika', 'Balika Sabha'), ('yuvak', 'Yuvak Sabha'), ('yuvati', 'Yuvati Sabha'), ('mahila', 'Mahila Sabha'), ('sanyukt-purush', 'Sanyukt Purush Sabha'), ('sanyukt-mahila', 'Sanyukt Mahila Sabha')],
+        'available_mandals': available_mandals,
+        'filters': {'sabha_type': sabha_type, 'mandal': mandal, 'date_from': date_from, 'date_to': date_to, 'status': status_filter},
         'search_query': search_query,
         'present_count': present_count,
         'absent_count': absent_count,
@@ -1122,6 +1186,7 @@ def export_attendance(request):
     from datetime import datetime, timedelta
     
     sabha_type_filter = request.GET.get('sabha_type')
+    mandal_filter = request.GET.get('mandal')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     status_filter = request.GET.get('status')
@@ -1143,10 +1208,12 @@ def export_attendance(request):
     except ValueError:
         return HttpResponse('Invalid date format', status=400)
     
-    # Build queries
-    sabha_query = {}
+    # Build queries - only finalized sabhas
+    sabha_query = {'$and': [{'is_finalized': {'$exists': True}}, {'is_finalized': True}]}
     if sabha_type_filter:
         sabha_query['sabha_type'] = sabha_type_filter
+    if mandal_filter:
+        sabha_query['mandal'] = mandal_filter
     if date_from:
         sabha_query.setdefault('date', {})['$gte'] = date_from
     if date_to:
@@ -1162,7 +1229,15 @@ def export_attendance(request):
     
     attendance_records = list(attendance_db.find(att_query))
     devotee_ids = list(set(att['devotee_id'] for att in attendance_records))
-    devotees = list(devotees_db.find({'devotee_id': {'$in': devotee_ids}}))
+    
+    # Filter devotees by mandal if specified
+    devotee_query = {'devotee_id': {'$in': devotee_ids}}
+    if mandal_filter:
+        devotee_query['mandal'] = mandal_filter
+    if sabha_type_filter:
+        devotee_query['sabha_type'] = sabha_type_filter
+    
+    devotees = list(devotees_db.find(devotee_query))
     
     # Create pandas DataFrames for fast processing
     sabha_df = pd.DataFrame(sabhas)
@@ -1175,14 +1250,23 @@ def export_attendance(request):
         
         # Merge data using pandas
         att_df = att_df.merge(sabha_df[['_id_str', 'sabha_type', 'date', 'mandal']], left_on='sabha_id', right_on='_id_str', how='left')
-        att_df = att_df.merge(devotee_df[['devotee_id', 'name', 'contact_number', 'devotee_type']], on='devotee_id', how='left')
+        att_df = att_df.merge(devotee_df[['devotee_id', 'name', 'contact_number', 'devotee_type', 'mandal']], on='devotee_id', how='left', suffixes=('_sabha', '_devotee'))
         
-        # Debug merged data
-        print(f"Merged data columns: {att_df.columns.tolist()}")
-        print(f"Sample sabha_type values: {att_df['sabha_type'].unique()}")
+        # Filter out rows with missing data
+        att_df = att_df.dropna(subset=['sabha_type', 'name'])
         
-        # Filter out rows with missing sabha_type
-        att_df = att_df.dropna(subset=['sabha_type'])
+        # CRITICAL: Ensure both sabha and devotee mandals match the filter
+        if mandal_filter:
+            att_df = att_df[
+                (att_df['mandal_sabha'] == mandal_filter) & 
+                (att_df['mandal_devotee'] == mandal_filter)
+            ]
+        
+        # Also filter out any records where devotee mandal doesn't match sabha mandal
+        att_df = att_df[att_df['mandal_sabha'] == att_df['mandal_devotee']]
+        
+        # Use sabha mandal for final data
+        att_df['mandal'] = att_df['mandal_sabha']
     
     # Create workbook
     wb = openpyxl.Workbook()
@@ -1200,7 +1284,7 @@ def export_attendance(request):
             return
         
         # Title
-        ws.merge_cells('A1:F1')
+        ws.merge_cells('A1:G1')
         title_cell = ws['A1']
         title_cell.value = '🏛️ Temple Attendance Summary by Mandal, Sabha & Date'
         title_cell.font = Font(bold=True, size=16, color='FFFFFF')
@@ -1210,7 +1294,7 @@ def export_attendance(request):
         # Summary by mandal, sabha type and date
         summary_data = att_df.groupby(['mandal', 'sabha_type', 'date', 'status']).size().unstack(fill_value=0).reset_index()
         
-        headers = ['Mandal', 'Sabha Type', 'Date', 'Present', 'Absent', 'Late']
+        headers = ['Mandal', 'Sabha Type', 'Date', 'Present', 'Absent', 'Late', 'Total']
         for col, header in enumerate(headers, 1):
             cell = ws.cell(row=3, column=col, value=header)
             cell.font = header_font
@@ -1219,16 +1303,27 @@ def export_attendance(request):
         
         row = 4
         for _, data in summary_data.iterrows():
+            present = data.get('present', 0)
+            absent = data.get('absent', 0)
+            late = data.get('late', 0)
+            total = present + absent + late
+            
             ws.cell(row=row, column=1, value=str(data['mandal']))
             ws.cell(row=row, column=2, value=data['sabha_type'].title())
             ws.cell(row=row, column=3, value=str(data['date']))
-            ws.cell(row=row, column=4, value=data.get('present', 0))
-            ws.cell(row=row, column=5, value=data.get('absent', 0))
-            ws.cell(row=row, column=6, value=data.get('late', 0))
+            ws.cell(row=row, column=4, value=present)
+            ws.cell(row=row, column=5, value=absent)
+            ws.cell(row=row, column=6, value=late)
+            ws.cell(row=row, column=7, value=total)
             row += 1
     
     def create_mandal_sabha_sheet(mandal, sabha_type):
-        sheet_data = att_df[(att_df['mandal'] == mandal) & (att_df['sabha_type'] == sabha_type)]
+        # Filter data for specific mandal and sabha_type, ensuring devotee mandal also matches
+        sheet_data = att_df[
+            (att_df['mandal'] == mandal) & 
+            (att_df['sabha_type'] == sabha_type) &
+            (att_df['mandal_devotee'] == mandal)  # Ensure devotee is also from same mandal
+        ]
         
         if sheet_data.empty:
             return None
@@ -1307,16 +1402,18 @@ def export_attendance(request):
     # Create summary sheet
     create_summary_sheet()
     
-    # Create sheets by mandal -> sabha type structure
+    # Create sheets by mandal and sabha type combinations that have data
     if not att_df.empty:
-        # Group by mandal first
-        mandals = att_df['mandal'].unique()
-        for mandal in mandals:
-            mandal_data = att_df[att_df['mandal'] == mandal]
-            sabha_types = mandal_data['sabha_type'].unique()
+        # Get unique mandal-sabha_type combinations from filtered attendance data
+        unique_combinations = att_df[['mandal', 'sabha_type']].drop_duplicates()
+        
+        for _, combo in unique_combinations.iterrows():
+            mandal = combo['mandal']
+            sabha_type = combo['sabha_type']
+            sheet_name = f'{mandal} - {sabha_type.title()}'
             
-            for sabha_type in sabha_types:
-                sheet_name = f'{mandal} - {sabha_type.title()}'
+            # Check if we already created this sheet
+            if sheet_name not in [ws.title for ws in wb.worksheets]:
                 sheet = create_mandal_sabha_sheet(mandal, sabha_type)
                 if sheet:
                     print(f"Created sheet: {sheet_name}")
@@ -1632,7 +1729,7 @@ def user_profile(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'balika','yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()

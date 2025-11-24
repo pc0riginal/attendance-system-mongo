@@ -62,6 +62,7 @@
                                     <h6 class="mb-0 fw-semibold">{{ devotee.name }}</h6>
                                     <small class="text-muted">ID: {{ devotee.devotee_id|default:"N/A" }} | {{ devotee.contact_number }}</small>
                                     <div class="mt-1">
+                                        <span class="badge bg-primary me-1" style="font-size: 0.7rem;">{{ devotee.mandal|default:"N/A"|title }}</span>
                                         <span class="badge bg-light text-dark me-1" style="font-size: 0.7rem;">{{ devotee.get_sabha_type_display }}</span>
                                         <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ devotee.devotee_type|default:"N/A"|title }}</span>
                                     </div>
@@ -89,6 +90,7 @@
                                 <th>ID</th>
                                 <th>Name</th>
                                 <th>Contact</th>
+                                <th>Mandal</th>
                                 <th>Sabha Type</th>
                                 <th>Type</th>
                                 <th>Actions</th>
@@ -115,6 +117,7 @@
                                     <td>{{ devotee.devotee_id }}</td>
                                     <td>{{ devotee.name }}</td>
                                     <td>{{ devotee.contact_number }}</td>
+                                    <td>{{ devotee.mandal|default:"N/A"|title }}</td>
                                     <td>{{ devotee.get_sabha_type_display }}</td>
                                     <td>{{ devotee.devotee_type|title }}</td>
                                     <td>
@@ -242,6 +245,7 @@ function updateDevoteeList(data) {
                         <h6 class="mb-0 fw-semibold">${devotee.name}</h6>
                         <small class="text-muted">ID: ${devotee.devotee_id} | ${devotee.contact_number}</small>
                         <div class="mt-1">
+                            <span class="badge bg-primary me-1" style="font-size: 0.7rem;">${devotee.mandal ? devotee.mandal.charAt(0).toUpperCase() + devotee.mandal.slice(1) : 'N/A'}</span>
                             <span class="badge bg-light text-dark me-1" style="font-size: 0.7rem;">${devotee.sabha_type_display}</span>
                             <span class="badge bg-secondary" style="font-size: 0.7rem;">${devotee.devotee_type ? devotee.devotee_type.charAt(0).toUpperCase() + devotee.devotee_type.slice(1) : 'N/A'}</span>
                         </div>
@@ -267,6 +271,7 @@ function updateDevoteeList(data) {
             <td>${devotee.devotee_id}</td>
             <td>${devotee.name}</td>
             <td>${devotee.contact_number}</td>
+            <td>${devotee.mandal ? devotee.mandal.charAt(0).toUpperCase() + devotee.mandal.slice(1) : 'N/A'}</td>
             <td>${devotee.sabha_type_display}</td>
             <td>${devotee.devotee_type ? devotee.devotee_type.charAt(0).toUpperCase() + devotee.devotee_type.slice(1) : 'N/A'}</td>
             <td>

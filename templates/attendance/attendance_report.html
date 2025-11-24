@@ -74,7 +74,7 @@
         <div class="card-body">
             <form method="get" class="row g-2" id="filterForm">
                 <input type="hidden" name="tab" value="report">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label for="sabha_type" class="form-label small">Sabha Type</label>
                     <select name="sabha_type" id="sabha_type" class="form-select form-select-sm">
                         <option value="">All Sabha Types</option>
@@ -83,11 +83,20 @@
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-12 col-md-3">
+                    <label for="mandal" class="form-label small">Mandal</label>
+                    <select name="mandal" id="mandal" class="form-select form-select-sm">
+                        <option value="">All Mandals</option>
+                        {% for value, label in available_mandals %}
+                            <option value="{{ value }}" {% if filters.mandal == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 col-md-2">
                     <label for="date_from" class="form-label small">From Date</label>
                     <input type="date" name="date_from" id="date_from" class="form-control form-control-sm" value="{{ filters.date_from }}">
                 </div>
-                <div class="col-6 col-md-3">
+                <div class="col-6 col-md-2">
                     <label for="date_to" class="form-label small">To Date</label>
                     <input type="date" name="date_to" id="date_to" class="form-control form-control-sm" value="{{ filters.date_to }}">
                 </div>

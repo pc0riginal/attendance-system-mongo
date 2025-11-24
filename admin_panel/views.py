@@ -58,6 +58,7 @@ def create_user(request):
     
     sabha_choices = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
         ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
@@ -115,6 +116,7 @@ def edit_user(request, user_id):
     
     sabha_choices = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
         ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),

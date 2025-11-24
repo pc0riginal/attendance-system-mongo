@@ -433,17 +433,10 @@
                 <i class="bi bi-person-circle"></i>
                 <span>Profile</span>
             </a>
-            {% if user.is_superuser %}
-            <button class="bottom-tab" onclick="toggleMoreMenu()" style="border: none; background: none;">
-                <i class="bi bi-three-dots"></i>
-                <span>More</span>
-            </button>
-            {% else %}
-            <button class="bottom-tab" onclick="toggleDarkMode()" style="border: none; background: none;">
-                <i class="bi bi-moon-fill" id="mobile-theme-icon"></i>
-                <span id="mobile-theme-text">Dark</span>
-            </button>
-            {% endif %}
+            <a href="{% url 'logout' %}" class="bottom-tab">
+                <i class="bi bi-box-arrow-right"></i>
+                <span>Logout</span>
+            </a>
         </div>
     </div>
     {% endif %}
@@ -471,6 +464,9 @@
                         <button class="list-group-item list-group-item-action py-3" onclick="toggleDarkMode()" style="border: none; text-align: left;">
                             <i class="bi bi-moon-fill me-3" id="modal-theme-icon"></i><span id="modal-theme-text">Dark Mode</span>
                         </button>
+                        <a href="{% url 'logout' %}" class="list-group-item list-group-item-action py-3">
+                            <i class="bi bi-box-arrow-right me-3"></i>Logout
+                        </a>
                     </div>
                 </div>
             </div>

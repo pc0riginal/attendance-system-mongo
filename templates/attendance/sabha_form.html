@@ -50,6 +50,8 @@
                                         {% for sabha_type in allowed_sabha_types %}
                                             {% if sabha_type == 'bal' %}
                                                 <option value="bal">Bal Sabha</option>
+                                            {% elif sabha_type == 'balika' %}
+                                                <option value="balika">Balika Sabha</option>
                                             {% elif sabha_type == 'yuvak' %}
                                                 <option value="yuvak">Yuvak Sabha</option>
                                             {% elif sabha_type == 'yuvati' %}

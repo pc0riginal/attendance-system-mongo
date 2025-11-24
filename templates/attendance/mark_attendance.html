@@ -24,16 +24,35 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
-                    {% if not is_finalized %}
-                        <button type="button" class="btn btn-danger me-2" onclick="finalizeAttendance()">
-                            <i class="bi bi-lock"></i> Final Submit
-                        </button>
-                    {% else %}
-                        <span class="badge bg-warning text-dark px-3 py-2 me-2">
-                            <i class="bi bi-lock"></i> Finalized
-                        </span>
-                    {% endif %}
-                    <span class="badge bg-light text-dark px-3 py-2 fs-6">{{ total_count }} Devotees</span>
+                    <div class="row g-2 mb-2">
+                        <div class="col-4">
+                            <span class="badge bg-success w-100 py-2" id="presentCount">
+                                <i class="bi bi-check-circle"></i> Present: 0
+                            </span>
+                        </div>
+                        <div class="col-4">
+                            <span class="badge bg-warning w-100 py-2" id="lateCount">
+                                <i class="bi bi-clock"></i> Late: 0
+                            </span>
+                        </div>
+                        <div class="col-4">
+                            <span class="badge bg-danger w-100 py-2" id="absentCount">
+                                <i class="bi bi-x-circle"></i> Absent: 0
+                            </span>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2">
+                        {% if not is_finalized %}
+                            <button type="button" class="btn btn-danger" onclick="finalizeAttendance()">
+                                <i class="bi bi-lock"></i> Final Submit
+                            </button>
+                        {% else %}
+                            <span class="badge bg-warning text-dark px-3 py-2">
+                                <i class="bi bi-lock"></i> Finalized
+                            </span>
+                        {% endif %}
+                        <span class="badge bg-light text-dark px-3 py-2 fs-6">{{ total_count }} Total</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -95,17 +114,17 @@
                                 
                                 <!-- Status Toggle Buttons -->
                                 <div class="btn-group w-100 mb-3" role="group">
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="present_{{ devotee.id }}" value="present" onchange="saveAttendance('{{ devotee.id }}', 'present')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'present' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="present_{{ devotee.id }}" value="present" onchange="saveAttendance('{{ devotee.id }}', 'present'); updateAttendanceCounts();" {% with existing_attendance|get_item:devotee.devotee_id as attendance %}{% if attendance.status == 'present' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-success" for="present_{{ devotee.id }}">
                                         <i class="bi bi-check-circle"></i> Present
                                     </label>
                                     
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="late_{{ devotee.id }}" value="late" onchange="saveAttendance('{{ devotee.id }}', 'late')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'late' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="late_{{ devotee.id }}" value="late" onchange="saveAttendance('{{ devotee.id }}', 'late'); updateAttendanceCounts();" {% with existing_attendance|get_item:devotee.devotee_id as attendance %}{% if attendance.status == 'late' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-warning" for="late_{{ devotee.id }}">
                                         <i class="bi bi-clock"></i> Late
                                     </label>
                                     
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="absent_{{ devotee.id }}" value="absent" onchange="saveAttendance('{{ devotee.id }}', 'absent')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if not attendance or attendance.status == 'absent' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="absent_{{ devotee.id }}" value="absent" onchange="saveAttendance('{{ devotee.id }}', 'absent'); updateAttendanceCounts();" {% with existing_attendance|get_item:devotee.devotee_id as attendance %}{% if not attendance or attendance.status == 'absent' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-danger" for="absent_{{ devotee.id }}">
                                         <i class="bi bi-x-circle"></i> Absent
                                     </label>
@@ -156,8 +175,8 @@
                                         <td>{{ devotee.name }}</td>
                                         <td>{{ devotee.contact_number }}</td>
                                         <td>
-                                            <select name="status_{{ devotee.id }}" class="form-select form-select-sm" onchange="saveAttendance('{{ devotee.id }}', this.value)" {% if is_finalized %}disabled{% endif %}>
-                                                {% with existing_attendance|get_item:devotee.id as attendance %}
+                                            <select name="status_{{ devotee.id }}" class="form-select form-select-sm" onchange="saveAttendance('{{ devotee.id }}', this.value); updateAttendanceCounts();" {% if is_finalized %}disabled{% endif %}>
+                                                {% with existing_attendance|get_item:devotee.devotee_id as attendance %}
                                                 <option value="absent" {% if not attendance or attendance.status == 'absent' %}selected{% endif %}>Absent</option>
                                                 <option value="present" {% if attendance.status == 'present' %}selected{% endif %}>Present</option>
                                                 <option value="late" {% if attendance.status == 'late' %}selected{% endif %}>Late</option>
@@ -249,6 +268,9 @@
 <script>
 // Simple save attendance function
 function saveAttendance(devoteeId, status) {
+    // Update counts immediately
+    setTimeout(updateAttendanceCounts, 50);
+    
     const sabhaId = window.location.pathname.split('/')[2];
     const notesElement = document.querySelector(`[name="notes_${devoteeId}"]`);
     
@@ -396,6 +418,57 @@ function performAttendanceSearch() {
 document.getElementById('searchInput').addEventListener('input', performAttendanceSearch);
 document.getElementById('searchType').addEventListener('change', performAttendanceSearch);
 
+// Update attendance counts
+function updateAttendanceCounts() {
+    let presentCount = 0;
+    let lateCount = 0;
+    let absentCount = 0;
+    
+    // Check if we're on mobile (radio buttons) or desktop (select dropdowns)
+    const radioButtons = document.querySelectorAll('input[type="radio"][name^="status_"]');
+    const selectDropdowns = document.querySelectorAll('select[name^="status_"]');
+    
+    if (radioButtons.length > 0) {
+        // Mobile view - count checked radio buttons
+        document.querySelectorAll('input[type="radio"]:checked[name^="status_"]').forEach(radio => {
+            if (radio.value === 'present') presentCount++;
+            else if (radio.value === 'late') lateCount++;
+            else if (radio.value === 'absent') absentCount++;
+        });
+    } else if (selectDropdowns.length > 0) {
+        // Desktop view - count select dropdown values
+        selectDropdowns.forEach(select => {
+            if (select.value === 'present') presentCount++;
+            else if (select.value === 'late') lateCount++;
+            else if (select.value === 'absent') absentCount++;
+        });
+    }
+    
+    // Update badges
+    const presentBadge = document.getElementById('presentCount');
+    const lateBadge = document.getElementById('lateCount');
+    const absentBadge = document.getElementById('absentCount');
+    
+    if (presentBadge) presentBadge.innerHTML = `<i class="bi bi-check-circle"></i> Present: ${presentCount}`;
+    if (lateBadge) lateBadge.innerHTML = `<i class="bi bi-clock"></i> Late: ${lateCount}`;
+    if (absentBadge) absentBadge.innerHTML = `<i class="bi bi-x-circle"></i> Absent: ${absentCount}`;
+    
+    console.log('Counts updated:', {present: presentCount, late: lateCount, absent: absentCount});
+}
+
+// Initialize counts on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for page to fully load, then update counts
+    setTimeout(updateAttendanceCounts, 1000);
+    
+    // Also update counts when any status changes
+    document.addEventListener('change', function(e) {
+        if (e.target.name && e.target.name.startsWith('status_')) {
+            setTimeout(updateAttendanceCounts, 100);
+        }
+    });
+});
+
 function updateAttendanceList(data) {
     const mobileContainer = document.querySelector('.d-block.d-lg-none');
     const desktopContainer = document.querySelector('.d-none.d-md-block tbody');
@@ -458,6 +531,9 @@ function updateAttendanceList(data) {
         `;
         desktopContainer.appendChild(desktopRow);
     });
+    
+    // Update counts after loading new data
+    setTimeout(updateAttendanceCounts, 100);
 }
 
 function updateAttendancePagination(data) {
@@ -531,11 +607,36 @@ function finalizeAttendance() {
 
 function confirmFinalize() {
     const form = document.querySelector('form');
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = 'final_submit';
-    input.value = 'true';
-    form.appendChild(input);
+    
+    // Add final submit flag
+    const finalInput = document.createElement('input');
+    finalInput.type = 'hidden';
+    finalInput.name = 'final_submit';
+    finalInput.value = 'true';
+    form.appendChild(finalInput);
+    
+    // Collect all current attendance status from radio buttons and selects
+    document.querySelectorAll('input[type="radio"]:checked, select[name^="status_"]').forEach(element => {
+        const devoteeId = element.name.replace('status_', '');
+        const status = element.value;
+        
+        // Create hidden input for this devotee's status
+        const statusInput = document.createElement('input');
+        statusInput.type = 'hidden';
+        statusInput.name = `status_${devoteeId}`;
+        statusInput.value = status;
+        form.appendChild(statusInput);
+    });
+    
+    // Collect all notes
+    document.querySelectorAll('input[name^="notes_"], textarea[name^="notes_"]').forEach(element => {
+        const notesInput = document.createElement('input');
+        notesInput.type = 'hidden';
+        notesInput.name = element.name;
+        notesInput.value = element.value;
+        form.appendChild(notesInput);
+    });
+    
     form.submit();
 }
 
