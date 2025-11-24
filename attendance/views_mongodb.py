@@ -163,15 +163,9 @@ def devotee_list(request):
     total_count = devotees_db.count(query)
     skip = (page - 1) * per_page
     
-    # Get all matching documents and sort by devotee_id as integer
+    # Get all matching documents and sort by name
     all_devotees = list(devotees_db.find(query))
-    def sort_key(x):
-        devotee_id = x.get('devotee_id', '')
-        try:
-            return int(devotee_id.split('-')[-1]) if '-' in devotee_id else 0
-        except:
-            return 0
-    all_devotees.sort(key=sort_key)
+    all_devotees.sort(key=lambda x: x.get('name', '').lower())
     devotees_raw = all_devotees[skip:skip + per_page]
     devotees = []
     for devotee in devotees_raw:

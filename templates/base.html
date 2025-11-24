@@ -330,6 +330,13 @@
             margin-bottom: 2px;
         }
         
+        /* Active state for modal list items */
+        .list-group-item.active {
+            background-color: rgba(108, 99, 255, 0.1) !important;
+            border-color: rgba(108, 99, 255, 0.2) !important;
+            color: #6C63FF !important;
+        }
+        
         @media (max-width: 768px) {
             .btn-temple { padding: 16px 28px; min-height: 56px; font-size: 1rem; }
             .btn-lg { padding: 16px 28px; min-height: 56px; font-size: 1rem; }
@@ -466,7 +473,7 @@
                         <a href="{% url 'attendance_report' %}" class="list-group-item list-group-item-action py-3">
                             <i class="bi bi-graph-up me-3"></i>Reports
                         </a>
-                        <a href="{% url 'mandal_list' %}" class="list-group-item list-group-item-action py-3">
+                        <a href="{% url 'mandal_list' %}" class="list-group-item list-group-item-action py-3{% if 'mandal' in request.resolver_match.url_name %} active{% endif %}">
                             <i class="bi bi-building me-3"></i>Mandals
                         </a>
                         <a href="{% url 'admin_dashboard' %}" class="list-group-item list-group-item-action py-3">
