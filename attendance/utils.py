@@ -39,7 +39,7 @@ def validate_sabha_type(sabha_type):
         return False, "Sabha type is required"
     
     sabha_str = str(sabha_type).lower().strip()
-    valid_types = ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+    valid_types = ['bal', 'balika', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
     if sabha_str not in valid_types:
         return False, f"Invalid sabha type. Must be one of: {', '.join(valid_types)}"
     
