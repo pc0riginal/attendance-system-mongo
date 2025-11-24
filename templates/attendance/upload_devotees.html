@@ -47,6 +47,14 @@
                         </div>
 
                         <div class="mb-4">
+                            <label for="{{ form.mandal_filter.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.mandal_filter.label }}
+                            </label>
+                            {{ form.mandal_filter }}
+                            <div class="form-text">Optional: Filter to import only specific mandal</div>
+                        </div>
+
+                        <div class="mb-4">
                             <label for="{{ form.sabha_type_filter.id_for_label }}" class="form-label fw-semibold">
                                 {{ form.sabha_type_filter.label }}
                             </label>
@@ -78,7 +86,7 @@
                     <h5><i class="bi bi-info-circle me-2"></i>Excel Format Requirements</h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-3">Your Excel file should contain the following columns:</p>
+                    <p class="mb-3">Your Excel file should contain the following columns with the new mandal-sabha structure:</p>
                     
                     <div class="table-responsive">
                         <table class="table table-sm">
@@ -94,8 +102,8 @@
                                 <tr>
                                     <td><code>devotee_id</code></td>
                                     <td><span class="badge badge-absent">Required</span></td>
-                                    <td>Unique devotee identifier (prefix + number)</td>
-                                    <td>p1, m2, y3, b4</td>
+                                    <td>Auto-generated format: MANDAL-SABHA-NUMBER</td>
+                                    <td>SAR-YUV-001, AKE-BAL-002</td>
                                 </tr>
                                 <tr>
                                     <td><code>name</code></td>
@@ -110,9 +118,15 @@
                                     <td>9876543210</td>
                                 </tr>
                                 <tr>
+                                    <td><code>mandal</code></td>
+                                    <td><span class="badge badge-absent">Required</span></td>
+                                    <td>sardarnagar, akeshan, dharti, or gathaman</td>
+                                    <td>sardarnagar</td>
+                                </tr>
+                                <tr>
                                     <td><code>sabha_type</code></td>
                                     <td><span class="badge badge-absent">Required</span></td>
-                                    <td>bal, yuvak, mahila, or sanyukt</td>
+                                    <td>bal, balika, yuvak, yuvati, mahila, sanyukt-purush, sanyukt-mahila</td>
                                     <td>yuvak</td>
                                 </tr>
                                 <tr>

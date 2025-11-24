@@ -24,6 +24,15 @@
                     </div>
                 </div>
                 <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    {% if not is_finalized %}
+                        <button type="button" class="btn btn-danger me-2" onclick="finalizeAttendance()">
+                            <i class="bi bi-lock"></i> Final Submit
+                        </button>
+                    {% else %}
+                        <span class="badge bg-warning text-dark px-3 py-2 me-2">
+                            <i class="bi bi-lock"></i> Finalized
+                        </span>
+                    {% endif %}
                     <span class="badge bg-light text-dark px-3 py-2 fs-6">{{ total_count }} Devotees</span>
                 </div>
             </div>
@@ -86,17 +95,17 @@
                                 
                                 <!-- Status Toggle Buttons -->
                                 <div class="btn-group w-100 mb-3" role="group">
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="present_{{ devotee.id }}" value="present" onchange="saveAttendance('{{ devotee.id }}', 'present')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'present' %}checked{% endif %}{% endwith %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="present_{{ devotee.id }}" value="present" onchange="saveAttendance('{{ devotee.id }}', 'present')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'present' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-success" for="present_{{ devotee.id }}">
                                         <i class="bi bi-check-circle"></i> Present
                                     </label>
                                     
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="late_{{ devotee.id }}" value="late" onchange="saveAttendance('{{ devotee.id }}', 'late')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'late' %}checked{% endif %}{% endwith %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="late_{{ devotee.id }}" value="late" onchange="saveAttendance('{{ devotee.id }}', 'late')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance.status == 'late' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-warning" for="late_{{ devotee.id }}">
                                         <i class="bi bi-clock"></i> Late
                                     </label>
                                     
-                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="absent_{{ devotee.id }}" value="absent" onchange="saveAttendance('{{ devotee.id }}', 'absent')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if not attendance or attendance.status == 'absent' %}checked{% endif %}{% endwith %}>
+                                    <input type="radio" class="btn-check" name="status_{{ devotee.id }}" id="absent_{{ devotee.id }}" value="absent" onchange="saveAttendance('{{ devotee.id }}', 'absent')" {% with existing_attendance|get_item:devotee.id as attendance %}{% if not attendance or attendance.status == 'absent' %}checked{% endif %}{% endwith %} {% if is_finalized %}disabled{% endif %}>
                                     <label class="btn btn-outline-danger" for="absent_{{ devotee.id }}">
                                         <i class="bi bi-x-circle"></i> Absent
                                     </label>
@@ -105,7 +114,7 @@
                                 <input type="text" name="notes_{{ devotee.id }}" class="form-control" 
                                        value="{% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance %}{{ attendance.notes }}{% endif %}{% endwith %}" 
                                        placeholder="Add notes (optional)" 
-                                       onchange="saveNotes({{ devotee.id }}, this.value)">
+                                       onchange="saveNotes({{ devotee.id }}, this.value)" {% if is_finalized %}readonly{% endif %}>
                             </div>
                         </div>
                     {% endfor %}
@@ -147,7 +156,7 @@
                                         <td>{{ devotee.name }}</td>
                                         <td>{{ devotee.contact_number }}</td>
                                         <td>
-                                            <select name="status_{{ devotee.id }}" class="form-select form-select-sm" onchange="saveAttendance('{{ devotee.id }}', this.value)">
+                                            <select name="status_{{ devotee.id }}" class="form-select form-select-sm" onchange="saveAttendance('{{ devotee.id }}', this.value)" {% if is_finalized %}disabled{% endif %}>
                                                 {% with existing_attendance|get_item:devotee.id as attendance %}
                                                 <option value="absent" {% if not attendance or attendance.status == 'absent' %}selected{% endif %}>Absent</option>
                                                 <option value="present" {% if attendance.status == 'present' %}selected{% endif %}>Present</option>
@@ -159,7 +168,7 @@
                                             <input type="text" name="notes_{{ devotee.id }}" class="form-control form-control-sm" 
                                                    value="{% with existing_attendance|get_item:devotee.id as attendance %}{% if attendance %}{{ attendance.notes }}{% endif %}{% endwith %}" 
                                                    placeholder="Optional notes" 
-                                                   onchange="saveNotes({{ devotee.id }}, this.value)">
+                                                   onchange="saveNotes({{ devotee.id }}, this.value)" {% if is_finalized %}readonly{% endif %}>
                                         </td>
                                     </tr>
                                 {% endfor %}
@@ -196,10 +205,28 @@
                 </nav>
                 {% endif %}
                 
-                <div class="d-flex justify-content-center mt-3">
+                <div class="d-flex justify-content-between align-items-center mt-4">
                     <a href="{% url 'sabha_list' %}" class="btn btn-secondary">
                         <i class="bi bi-arrow-left"></i> Back to Sabhas
                     </a>
+                    {% if not is_finalized %}
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="send_sms" id="sendSms">
+                            <label class="form-check-label" for="sendSms">
+                                <i class="bi bi-phone"></i> SMS absent devotees
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-temple">
+                            <i class="bi bi-check-circle"></i> Save All
+                        </button>
+
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="bi bi-lock"></i> This attendance has been finalized and cannot be edited.
+                    </div>
+                    {% endif %}
                 </div>
             {% else %}
                 <div class="text-center py-4">
@@ -497,6 +524,21 @@ function loadAttendancePage(page) {
     });
 }
 
+function finalizeAttendance() {
+    const modal = new bootstrap.Modal(document.getElementById('finalizeModal'));
+    modal.show();
+}
+
+function confirmFinalize() {
+    const form = document.querySelector('form');
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'final_submit';
+    input.value = 'true';
+    form.appendChild(input);
+    form.submit();
+}
+
 function createMobileAttendanceCard(devotee) {
     const card = document.createElement('div');
     card.className = 'card mb-3';
@@ -554,4 +596,37 @@ function createDesktopAttendanceRow(devotee) {
     return row;
 }
 </script>
+
+<!-- Finalize Confirmation Modal -->
+<div class="modal fade" id="finalizeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-exclamation-triangle me-2"></i>Finalize Attendance
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="bi bi-lock-fill text-danger" style="font-size: 3rem;"></i>
+                </div>
+                <h6 class="text-center mb-3">Are you sure you want to finalize this attendance?</h6>
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Warning:</strong> Once finalized, you will not be able to edit the attendance records for this sabha.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-danger" onclick="confirmFinalize()">
+                    <i class="bi bi-lock me-1"></i>Yes, Finalize
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

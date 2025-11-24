@@ -16,13 +16,21 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Xetra <span class="text-danger">*</span></label>
-                                <input type="text" name="xetra" class="form-control" required>
+                                <input type="text" name="xetra" class="form-control" value="Palanpur" required>
+                                <div class="form-text">Default: Palanpur</div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Mandal <span class="text-danger">*</span></label>
-                                <input type="text" name="mandal" class="form-control" required>
+                                <select name="mandal" class="form-select" required>
+                                    <option value="">Select Mandal</option>
+                                    {% if allowed_mandals %}
+                                        {% for mandal in allowed_mandals %}
+                                            <option value="{{ mandal }}">{{ mandal|title }}</option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -37,16 +45,21 @@
                             <div class="mb-3">
                                 <label class="form-label">Sabha Type</label>
                                 <select name="sabha_type" class="form-select" required>
+                                    <option value="">Select Sabha Type</option>
                                     {% if allowed_sabha_types %}
                                         {% for sabha_type in allowed_sabha_types %}
                                             {% if sabha_type == 'bal' %}
                                                 <option value="bal">Bal Sabha</option>
                                             {% elif sabha_type == 'yuvak' %}
                                                 <option value="yuvak">Yuvak Sabha</option>
+                                            {% elif sabha_type == 'yuvati' %}
+                                                <option value="yuvati">Yuvati Sabha</option>
                                             {% elif sabha_type == 'mahila' %}
                                                 <option value="mahila">Mahila Sabha</option>
-                                            {% elif sabha_type == 'sanyukt' %}
-                                                <option value="sanyukt">Sanyukt Sabha</option>
+                                            {% elif sabha_type == 'sanyukt-purush' %}
+                                                <option value="sanyukt-purush">Sanyukt Purush Sabha</option>
+                                            {% elif sabha_type == 'sanyukt-mahila' %}
+                                                <option value="sanyukt-mahila">Sanyukt Mahila Sabha</option>
                                             {% endif %}
                                         {% endfor %}
                                     {% else %}

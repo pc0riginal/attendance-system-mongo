@@ -39,20 +39,32 @@ def validate_sabha_type(sabha_type):
         return False, "Sabha type is required"
     
     sabha_str = str(sabha_type).lower().strip()
-    valid_types = [choice[0] for choice in Devotee.SABHA_CHOICES]
+    valid_types = ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
     if sabha_str not in valid_types:
         return False, f"Invalid sabha type. Must be one of: {', '.join(valid_types)}"
     
     return True, None
 
-def process_excel_file(file_path, sabha_type_filter=None):
+def validate_mandal(mandal):
+    """Validate mandal"""
+    if not mandal or pd.isna(mandal):
+        return False, "Mandal is required"
+    
+    mandal_str = str(mandal).lower().strip()
+    valid_mandals = ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+    if mandal_str not in valid_mandals:
+        return False, f"Invalid mandal. Must be one of: {', '.join(valid_mandals)}"
+    
+    return True, None
+
+def process_excel_file(file_path, sabha_type_filter=None, mandal_filter=None):
     """Process Excel file and validate data"""
     try:
         # Read Excel file
         df = pd.read_excel(file_path)
         
         # Expected columns
-        required_columns = ['devotee_id', 'name', 'contact_number', 'sabha_type', 'devotee_type', 'date_of_birth', 'gender']
+        required_columns = ['devotee_id', 'name', 'contact_number', 'mandal', 'sabha_type', 'devotee_type', 'date_of_birth', 'gender']
         optional_columns = ['age', 'address_line', 'landmark', 'zone', 'join_date']
         
         # Check if required columns exist
@@ -66,14 +78,14 @@ def process_excel_file(file_path, sabha_type_filter=None):
         for index, row in df.iterrows():
             row_errors = []
             
-            # Validate devotee_id (mandatory string with prefix)
+            # Validate devotee_id (mandatory string with new format)
             if not row['devotee_id'] or pd.isna(row['devotee_id']):
                 row_errors.append("Devotee ID is required")
             else:
                 devotee_id_str = str(row['devotee_id']).strip()
-                # Check format: prefix + number (e.g., p1, m2, y3, b4)
-                if not re.match(r'^[a-zA-Z]\d+$', devotee_id_str):
-                    row_errors.append("Devotee ID must be in format: prefix + number (e.g., p1, m2, y3, b4)")
+                # Check format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)
+                if not re.match(r'^[A-Z]{3}-[A-Z]{3}-\d{3}$', devotee_id_str):
+                    row_errors.append("Devotee ID must be in format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)")
             
             # Validate name (mandatory)
             if not row['name'] or pd.isna(row['name']) or str(row['name']).strip() == '':
@@ -83,6 +95,11 @@ def process_excel_file(file_path, sabha_type_filter=None):
             phone_valid, phone_error = validate_phone(row['contact_number'])
             if not phone_valid:
                 row_errors.append(phone_error)
+            
+            # Validate mandal (mandatory)
+            mandal_valid, mandal_error = validate_mandal(row['mandal'])
+            if not mandal_valid:
+                row_errors.append(mandal_error)
             
             # Validate sabha type (mandatory)
             sabha_valid, sabha_error = validate_sabha_type(row['sabha_type'])
@@ -94,7 +111,7 @@ def process_excel_file(file_path, sabha_type_filter=None):
                 row_errors.append("Devotee type is required")
             else:
                 devotee_type_str = str(row['devotee_type']).lower().strip()
-                valid_types = [choice[0] for choice in Devotee.DEVOTEE_TYPE_CHOICES]
+                valid_types = ['haribhakt', 'gunbhavi', 'karyakar']
                 if devotee_type_str not in valid_types:
                     row_errors.append(f"Invalid devotee type. Must be one of: {', '.join(valid_types)}")
             
@@ -118,12 +135,14 @@ def process_excel_file(file_path, sabha_type_filter=None):
                 row_errors.append("Gender is required")
             else:
                 gender_str = str(row['gender']).lower().strip()
-                valid_genders = [choice[0] for choice in Devotee.GENDER_CHOICES]
+                valid_genders = ['male', 'female']
                 if gender_str not in valid_genders:
                     row_errors.append(f"Invalid gender. Must be one of: {', '.join(valid_genders)}")
             
-            # Apply sabha type filter if specified
+            # Apply filters if specified
             if sabha_type_filter and str(row['sabha_type']).lower() != sabha_type_filter:
+                continue
+            if mandal_filter and str(row['mandal']).lower() != mandal_filter:
                 continue
             
             if row_errors:
@@ -154,6 +173,7 @@ def process_excel_file(file_path, sabha_type_filter=None):
                     'devotee_id': str(row['devotee_id']).strip(),
                     'name': str(row['name']).strip(),
                     'contact_number': str(row['contact_number']).strip(),
+                    'mandal': str(row['mandal']).lower().strip(),
                     'sabha_type': str(row['sabha_type']).lower().strip(),
                     'devotee_type': str(row['devotee_type']).lower().strip(),
                     'date_of_birth': dob,

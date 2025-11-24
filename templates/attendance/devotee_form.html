@@ -15,9 +15,53 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
+                                <label class="form-label">Mandal</label>
+                                <select name="mandal" class="form-select" required id="mandalSelect">
+                                    <option value="">Select Mandal</option>
+                                    {% if allowed_mandals %}
+                                        {% for mandal in allowed_mandals %}
+                                            <option value="{{ mandal }}" {% if devotee.mandal == mandal %}selected{% endif %}>{{ mandal|title }}</option>
+                                        {% endfor %}
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Sabha Type</label>
+                                <select name="sabha_type" class="form-select" required id="sabhaTypeSelect">
+                                    <option value="">Select Sabha Type</option>
+                                    {% if allowed_sabha_types %}
+                                        {% for sabha_type in allowed_sabha_types %}
+                                            {% if sabha_type == 'bal' %}
+                                                <option value="bal" {% if devotee.sabha_type == 'bal' %}selected{% endif %}>Bal Sabha</option>
+                                            {% elif sabha_type == 'balika' %}
+                                                <option value="balika" {% if devotee.sabha_type == 'balika' %}selected{% endif %}>Balika Sabha</option>
+                                            {% elif sabha_type == 'yuvak' %}
+                                                <option value="yuvak" {% if devotee.sabha_type == 'yuvak' %}selected{% endif %}>Yuvak Sabha</option>
+                                            {% elif sabha_type == 'yuvati' %}
+                                                <option value="yuvati" {% if devotee.sabha_type == 'yuvati' %}selected{% endif %}>Yuvati Sabha</option>
+                                            {% elif sabha_type == 'mahila' %}
+                                                <option value="mahila" {% if devotee.sabha_type == 'mahila' %}selected{% endif %}>Mahila Sabha</option>
+                                            {% elif sabha_type == 'sanyukt-purush' %}
+                                                <option value="sanyukt-purush" {% if devotee.sabha_type == 'sanyukt-purush' %}selected{% endif %}>Sanyukt Purush Sabha</option>
+                                            {% elif sabha_type == 'sanyukt-mahila' %}
+                                                <option value="sanyukt-mahila" {% if devotee.sabha_type == 'sanyukt-mahila' %}selected{% endif %}>Sanyukt Mahila Sabha</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        <option value="">No sabha types available</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
                                 <label class="form-label">Devotee ID</label>
-                                <input type="text" name="devotee_id" class="form-control" value="{{ devotee.devotee_id|default:'' }}" placeholder="Auto-generated if empty">
-                                <div class="form-text">Leave empty for auto-generation</div>
+                                <input type="text" name="devotee_id" class="form-control" value="{{ devotee.devotee_id|default:'' }}" placeholder="Auto-generated based on mandal-sabha" readonly id="devoteeIdInput">
+                                <div class="form-text">Auto-generated: [Mandal-3chars]-[Sabha-3chars]-[Number]</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -64,33 +108,11 @@
                         </div>
                     </div>
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-12">
                             <div class="mb-3">
                                 <label class="form-label">Age</label>
                                 <input type="number" name="age" class="form-control" value="{{ devotee.age|default:'' }}" readonly id="ageInput">
                                 <div class="form-text">Auto-calculated from date of birth</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="form-label">Sabha Type</label>
-                                <select name="sabha_type" class="form-select" required>
-                                    {% if allowed_sabha_types %}
-                                        {% for sabha_type in allowed_sabha_types %}
-                                            {% if sabha_type == 'bal' %}
-                                                <option value="bal" {% if devotee.sabha_type == 'bal' %}selected{% endif %}>Bal Sabha</option>
-                                            {% elif sabha_type == 'yuvak' %}
-                                                <option value="yuvak" {% if devotee.sabha_type == 'yuvak' %}selected{% endif %}>Yuvak Sabha</option>
-                                            {% elif sabha_type == 'mahila' %}
-                                                <option value="mahila" {% if devotee.sabha_type == 'mahila' %}selected{% endif %}>Mahila Sabha</option>
-                                            {% elif sabha_type == 'sanyukt' %}
-                                                <option value="sanyukt" {% if devotee.sabha_type == 'sanyukt' %}selected{% endif %}>Sanyukt Sabha</option>
-                                            {% endif %}
-                                        {% endfor %}
-                                    {% else %}
-                                        <option value="">No sabha types available</option>
-                                    {% endif %}
-                                </select>
                             </div>
                         </div>
                     </div>
@@ -329,12 +351,31 @@ document.querySelector('form').addEventListener('submit', function() {
     saveLoader.classList.remove('d-none');
 });
 
+// Generate devotee ID when mandal or sabha type changes
+function generateDevoteeId() {
+    const mandal = document.getElementById('mandalSelect').value;
+    const sabhaType = document.getElementById('sabhaTypeSelect').value;
+    const devoteeIdInput = document.getElementById('devoteeIdInput');
+    
+    if (mandal && sabhaType) {
+        const mandalPrefix = mandal.substring(0, 3).toUpperCase();
+        const sabhaPrefix = sabhaType.substring(0, 3).toUpperCase();
+        devoteeIdInput.placeholder = `${mandalPrefix}-${sabhaPrefix}-XXX (Auto-generated)`;
+    } else {
+        devoteeIdInput.placeholder = 'Auto-generated based on mandal-sabha';
+    }
+}
+
+document.getElementById('mandalSelect').addEventListener('change', generateDevoteeId);
+document.getElementById('sabhaTypeSelect').addEventListener('change', generateDevoteeId);
+
 // Calculate age on page load if DOB exists
 window.addEventListener('load', function() {
     const dobInput = document.getElementById('dobInput');
     if (dobInput.value) {
         dobInput.dispatchEvent(new Event('change'));
     }
+    generateDevoteeId();
 });
 </script>
 {% endblock %}

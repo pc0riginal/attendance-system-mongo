@@ -4,12 +4,13 @@ from datetime import datetime
 import bcrypt
 
 class AdminUser:
-    def __init__(self, username, email, password=None, allowed_sabha_types=None, is_admin=False, can_delete=False, _id=None):
+    def __init__(self, username, email, password=None, allowed_sabha_types=None, allowed_mandals=None, is_admin=False, can_delete=False, _id=None):
         self._id = _id or ObjectId()
         self.username = username
         self.email = email
         self.password_hash = self._hash_password(password) if password else None
         self.allowed_sabha_types = allowed_sabha_types or []
+        self.allowed_mandals = allowed_mandals or []
         self.is_admin = is_admin
         self.can_delete = can_delete
         self.created_at = datetime.now()
@@ -32,6 +33,7 @@ class AdminUser:
             'email': self.email,
             'password_hash': self.password_hash,
             'allowed_sabha_types': self.allowed_sabha_types,
+            'allowed_mandals': self.allowed_mandals,
             'is_admin': self.is_admin,
             'can_delete': self.can_delete,
             'created_at': self.created_at,
@@ -46,6 +48,7 @@ class AdminUser:
         user.email = data.get('email')
         user.password_hash = data.get('password_hash')
         user.allowed_sabha_types = data.get('allowed_sabha_types', [])
+        user.allowed_mandals = data.get('allowed_mandals', [])
         user.is_admin = data.get('is_admin', False)
         user.can_delete = data.get('can_delete', False)
         user.created_at = data.get('created_at')
@@ -57,13 +60,13 @@ class AdminUserManager:
         self.db = get_mongodb()
         self.collection = self.db.admin_users if self.db is not None else None
     
-    def create_user(self, username, email, password, allowed_sabha_types=None, is_admin=False, can_delete=False):
+    def create_user(self, username, email, password, allowed_sabha_types=None, allowed_mandals=None, is_admin=False, can_delete=False):
         if self.collection is None:
             raise ValueError('MongoDB connection not available')
         if self.collection.find_one({'username': username}):
             raise ValueError('Username already exists')
         
-        user = AdminUser(username, email, password, allowed_sabha_types, is_admin, can_delete)
+        user = AdminUser(username, email, password, allowed_sabha_types, allowed_mandals, is_admin, can_delete)
         result = self.collection.insert_one(user.to_dict())
         user._id = result.inserted_id
         return user
@@ -94,6 +97,8 @@ class AdminUserManager:
         update_data = {}
         if 'allowed_sabha_types' in kwargs:
             update_data['allowed_sabha_types'] = kwargs['allowed_sabha_types']
+        if 'allowed_mandals' in kwargs:
+            update_data['allowed_mandals'] = kwargs['allowed_mandals']
         if 'is_admin' in kwargs:
             update_data['is_admin'] = kwargs['is_admin']
         if 'can_delete' in kwargs:

@@ -306,7 +306,24 @@ def mark_attendance(request, sabha_id):
                 attendance.notes = notes
                 attendance.save()
         
-        messages.success(request, 'Attendance marked successfully!')
+        # Send SMS to absent devotees
+        absent_devotees = []
+        for devotee in devotees:
+            status = request.POST.get(f'status_{devotee.id}', 'absent')
+            if status == 'absent':
+                absent_devotees.append(devotee)
+        
+        if absent_devotees and request.POST.get('send_sms'):
+            from .sms_utils import send_absence_notification
+            sms_results = []
+            for devotee in absent_devotees:
+                success, msg = send_absence_notification(devotee, sabha, request.user.username)
+                sms_results.append(f"{devotee.name}: {'✓' if success else '✗'}")
+            
+            messages.success(request, f'Attendance marked successfully! SMS sent to {len([r for r in sms_results if "✓" in r])} absent devotees.')
+        else:
+            messages.success(request, 'Attendance marked successfully!')
+        
         return redirect('sabha_list')
     
     # Get existing attendance

@@ -48,6 +48,23 @@
                         <div class="form-text">Select which sabha types this user can access</div>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Allowed Mandals</label>
+                        <div class="row">
+                            {% for value, label in mandal_choices %}
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="allowed_mandals" 
+                                           value="{{ value }}" id="mandal_{{ value }}">
+                                    <label class="form-check-label" for="mandal_{{ value }}">
+                                        {{ label }}
+                                    </label>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text">Select which mandals this user can access</div>
+                    </div>
+                    <div class="mb-3">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="is_admin" id="is_admin">
                             <label class="form-check-label" for="is_admin">

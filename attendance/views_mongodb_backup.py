@@ -39,7 +39,7 @@ def dashboard(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -54,26 +54,9 @@ def dashboard(request):
     if not allowed_sabha_types:
         allowed_sabha_types = []
     
-    # Get user's allowed mandals
-    def get_user_mandals(user):
-        if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
-        try:
-            from admin_panel.mongodb_models import AdminUserManager
-            admin_manager = AdminUserManager()
-            admin_user = admin_manager.get_user_by_username(user.username)
-            if admin_user:
-                return admin_user.allowed_mandals or []
-            return []
-        except Exception:
-            return []
-    
-    allowed_mandals = get_user_mandals(request.user)
-    
-    # Filter by user's sabha types and mandals
-    user_filter = {'sabha_type': {'$in': allowed_sabha_types}, 'mandal': {'$in': allowed_mandals}} if allowed_sabha_types and allowed_mandals else {}
-    total_devotees = devotees_db.count(user_filter) if user_filter else 0
-    recent_sabhas_raw = sabhas_db.find(user_filter, sort=[('date', -1)], limit=5) if user_filter else []
+    # Filter by user's sabha types
+    total_devotees = devotees_db.count({'sabha_type': {'$in': allowed_sabha_types}}) if allowed_sabha_types else 0
+    recent_sabhas_raw = sabhas_db.find({'sabha_type': {'$in': allowed_sabha_types}}, sort=[('date', -1)], limit=5) if allowed_sabha_types else []
     recent_sabhas = []
     for sabha in recent_sabhas_raw:
         sabha['id'] = str(sabha['_id'])
@@ -81,7 +64,7 @@ def dashboard(request):
         recent_sabhas.append(sabha)
     
     # Get sabha IDs for attendance filtering
-    user_sabhas = list(sabhas_db.find(user_filter, {'_id': 1})) if user_filter else []
+    user_sabhas = list(sabhas_db.find({'sabha_type': {'$in': allowed_sabha_types}}, {'_id': 1})) if allowed_sabha_types else []
     user_sabha_ids = [str(s['_id']) for s in user_sabhas]
     
     total_attendance_records = attendance_db.count({'sabha_id': {'$in': user_sabha_ids}}) if user_sabha_ids else 0
@@ -109,7 +92,7 @@ def devotee_list(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -130,23 +113,7 @@ def devotee_list(request):
     page = int(request.GET.get('page', 1))
     per_page = 20
     
-    # Get user's allowed mandals
-    def get_user_mandals(user):
-        if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
-        try:
-            from admin_panel.mongodb_models import AdminUserManager
-            admin_manager = AdminUserManager()
-            admin_user = admin_manager.get_user_by_username(user.username)
-            if admin_user:
-                return admin_user.allowed_mandals or []
-            return []
-        except Exception:
-            return []
-    
-    allowed_mandals = get_user_mandals(request.user)
-    
-    query = {'sabha_type': {'$in': allowed_sabha_types}, 'mandal': {'$in': allowed_mandals}}
+    query = {'sabha_type': {'$in': allowed_sabha_types}}
     if search_query:
         search_condition = {}
         if search_type == 'id':
@@ -157,7 +124,7 @@ def devotee_list(request):
             search_condition = {'name': {'$regex': search_query, '$options': 'i'}}
         elif search_type == 'type':
             search_condition = {'devotee_type': {'$regex': search_query, '$options': 'i'}}
-        query = {'$and': [{'sabha_type': {'$in': allowed_sabha_types}}, {'mandal': {'$in': allowed_mandals}}, search_condition]}
+        query = {'$and': [{'sabha_type': {'$in': allowed_sabha_types}}, search_condition]}
     
     total_count = devotees_db.count(query)
     skip = (page - 1) * per_page
@@ -190,9 +157,9 @@ def devotee_list(request):
                 'devotee_id': d.get('devotee_id', ''),
                 'name': d['name'],
                 'contact_number': d['contact_number'],
-                'mandal': d.get('mandal', ''),
                 'sabha_type_display': d['sabha_type'].title(),
                 'devotee_type': d.get('devotee_type', ''),
+                'contact_number': d['contact_number'],
                 'join_date': d['join_date'],
                 'photo_url': photo_url
             })
@@ -234,10 +201,10 @@ def devotee_list(request):
 
 @login_required
 def devotee_add(request):
-    # Get user's allowed sabha types and mandals
+    # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -248,78 +215,47 @@ def devotee_add(request):
         except Exception:
             return []
     
-    def get_user_mandals(user):
-        if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
-        try:
-            from admin_panel.mongodb_models import AdminUserManager
-            admin_manager = AdminUserManager()
-            admin_user = admin_manager.get_user_by_username(user.username)
-            if admin_user:
-                return admin_user.allowed_mandals or []
-            return []
-        except Exception:
-            return []
-    
     allowed_sabha_types = get_user_sabha_types(request.user)
-    allowed_mandals = get_user_mandals(request.user)
-    if not allowed_sabha_types or not allowed_mandals:
+    if not allowed_sabha_types:
         messages.error(request, 'You do not have permission to add devotees.')
         return redirect('dashboard')
     
     if request.method == 'POST':
         from .dropbox_utils import upload_devotee_photo
         
-        # Auto-generate devotee_id
-        def generate_devotee_id(mandal, sabha_type):
-            mandal_prefix = mandal[:3].upper()
-            sabha_prefix = sabha_type[:3].upper()
-            key = f"{mandal_prefix}-{sabha_prefix}"
-            
-            # Find the highest existing number for this mandal-sabha combination
-            existing_devotees = list(devotees_db.find({
-                'devotee_id': {'$regex': f'^{key}-\\d{{3}}$'}
-            }))
-            
-            if existing_devotees:
-                numbers = []
-                for d in existing_devotees:
-                    try:
-                        num = int(d['devotee_id'].split('-')[-1])
-                        numbers.append(num)
-                    except:
-                        continue
-                next_num = max(numbers) + 1 if numbers else 1
-            else:
-                next_num = 1
-            
-            return f"{key}-{next_num:03d}"
+        # Get devotee_id as string (mandatory)
+        devotee_id = request.POST.get('devotee_id', '').strip()
+        if not devotee_id:
+            messages.error(request, 'Devotee ID is required')
+            return render(request, 'attendance/devotee_form.html', {
+                'title': 'Add Devotee', 
+                'today': datetime.now().date().isoformat(),
+                'allowed_sabha_types': allowed_sabha_types
+            })
         
-        # Check if user can add this sabha type and mandal
+        # Check if devotee_id already exists
+        if devotees_db.find_one({'devotee_id': devotee_id}):
+            messages.error(request, f'Devotee ID {devotee_id} already exists')
+            return render(request, 'attendance/devotee_form.html', {
+                'title': 'Add Devotee', 
+                'today': datetime.now().date().isoformat(),
+                'allowed_sabha_types': allowed_sabha_types
+            })
+        
+        # Check if user can add this sabha type
         sabha_type = request.POST.get('sabha_type')
-        mandal = request.POST.get('mandal')
         if sabha_type not in allowed_sabha_types:
             messages.error(request, 'You can only add devotees for your assigned sabha types.')
             return render(request, 'attendance/devotee_form.html', {
                 'title': 'Add Devotee', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': allowed_mandals
-            })
-        if mandal not in allowed_mandals:
-            messages.error(request, 'You can only add devotees for your assigned mandals.')
-            return render(request, 'attendance/devotee_form.html', {
-                'title': 'Add Devotee', 
-                'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': allowed_mandals
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         devotee_data = {
             'devotee_type': request.POST.get('devotee_type', 'haribhakt'),
             'name': request.POST.get('name'),
             'contact_number': request.POST.get('contact_number'),
-            'mandal': request.POST.get('mandal'),
             'date_of_birth': request.POST.get('date_of_birth'),
             'gender': request.POST.get('gender'),
             'age': int(request.POST.get('age', 0)),
@@ -358,8 +294,6 @@ def devotee_add(request):
             if photo_url:
                 devotee_data['photo_url'] = photo_url
         
-        # Generate devotee ID
-        devotee_id = generate_devotee_id(mandal, sabha_type)
         devotee_data['devotee_id'] = devotee_id
         
         result = devotees_db.insert_one(devotee_data)
@@ -369,8 +303,7 @@ def devotee_add(request):
             return render(request, 'attendance/devotee_form.html', {
                 'title': 'Add Devotee', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': allowed_mandals
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         messages.success(request, 'Devotee added successfully!')
@@ -379,8 +312,7 @@ def devotee_add(request):
     return render(request, 'attendance/devotee_form.html', {
         'title': 'Add Devotee', 
         'today': datetime.now().date().isoformat(),
-        'allowed_sabha_types': allowed_sabha_types,
-        'allowed_mandals': allowed_mandals
+        'allowed_sabha_types': allowed_sabha_types
     })
 
 @login_required
@@ -399,7 +331,7 @@ def devotee_edit(request, pk):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -434,8 +366,7 @@ def devotee_edit(request, pk):
                 'devotee': devotee, 
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         # Check if user can assign this sabha type
@@ -446,8 +377,7 @@ def devotee_edit(request, pk):
                 'devotee': devotee, 
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         update_data = {
@@ -501,8 +431,7 @@ def devotee_edit(request, pk):
                 'devotee': devotee, 
                 'title': 'Edit Devotee', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         print(f"Database update result: {update_result.modified_count if update_result else 0} documents modified")
@@ -515,8 +444,7 @@ def devotee_edit(request, pk):
         'devotee': devotee, 
         'title': 'Edit Devotee', 
         'today': datetime.now().date().isoformat(),
-        'allowed_sabha_types': allowed_sabha_types,
-        'allowed_mandals': ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
+        'allowed_sabha_types': allowed_sabha_types
     })
 
 @login_required
@@ -524,7 +452,7 @@ def sabha_list(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -540,27 +468,11 @@ def sabha_list(request):
         messages.error(request, 'You do not have permission to view sabhas.')
         return redirect('dashboard')
     
-    # Get user's allowed mandals
-    def get_user_mandals(user):
-        if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
-        try:
-            from admin_panel.mongodb_models import AdminUserManager
-            admin_manager = AdminUserManager()
-            admin_user = admin_manager.get_user_by_username(user.username)
-            if admin_user:
-                return admin_user.allowed_mandals or []
-            return []
-        except Exception:
-            return []
-    
-    allowed_mandals = get_user_mandals(request.user)
-    
-    # Admin users see all sabhas, regular users see only their mandal+sabha combinations
+    # Admin users see all sabhas, regular users see only their types
     if request.user.is_superuser:
         sabhas_raw = sabhas_db.find(sort=[('date', -1)])
     else:
-        sabhas_raw = sabhas_db.find({'sabha_type': {'$in': allowed_sabha_types}, 'mandal': {'$in': allowed_mandals}}, sort=[('date', -1)])
+        sabhas_raw = sabhas_db.find({'sabha_type': {'$in': allowed_sabha_types}}, sort=[('date', -1)])
     
     sabhas = []
     for sabha in sabhas_raw:
@@ -579,7 +491,7 @@ def sabha_add(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()
@@ -590,21 +502,7 @@ def sabha_add(request):
         except Exception:
             return []
     
-    def get_user_mandals(user):
-        if user.is_superuser:
-            return ['sardarnagar', 'akeshan', 'dharti', 'gathaman']
-        try:
-            from admin_panel.mongodb_models import AdminUserManager
-            admin_manager = AdminUserManager()
-            admin_user = admin_manager.get_user_by_username(user.username)
-            if admin_user:
-                return admin_user.allowed_mandals or []
-            return []
-        except Exception:
-            return []
-    
     allowed_sabha_types = get_user_sabha_types(request.user)
-    allowed_mandals = get_user_mandals(request.user)
     if not allowed_sabha_types:
         messages.error(request, 'You do not have permission to create sabhas.')
         return redirect('dashboard')
@@ -616,8 +514,7 @@ def sabha_add(request):
             return render(request, 'attendance/sabha_form.html', {
                 'title': 'Create Sabha', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': allowed_mandals
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         start_time = request.POST.get('start_time')
@@ -629,8 +526,7 @@ def sabha_add(request):
             return render(request, 'attendance/sabha_form.html', {
                 'title': 'Create Sabha', 
                 'today': datetime.now().date().isoformat(),
-                'allowed_sabha_types': allowed_sabha_types,
-                'allowed_mandals': allowed_mandals
+                'allowed_sabha_types': allowed_sabha_types
             })
         
         sabha_data = {
@@ -641,7 +537,6 @@ def sabha_add(request):
             'mandal': request.POST.get('mandal'),
             'start_time': start_time,
             'end_time': end_time,
-                'is_finalized': False,
             'created_at': datetime.now().isoformat(),
             'created_by': request.user.username
         }
@@ -689,8 +584,7 @@ def sabha_add(request):
     return render(request, 'attendance/sabha_form.html', {
         'title': 'Create Sabha', 
         'today': datetime.now().date().isoformat(),
-        'allowed_sabha_types': allowed_sabha_types,
-        'allowed_mandals': allowed_mandals
+        'allowed_sabha_types': allowed_sabha_types
     })
 
 @login_required
@@ -707,7 +601,7 @@ def mark_attendance(request, sabha_id):
     page = int(request.GET.get('page', 1))
     per_page = 30
     
-    query = {'sabha_type': sabha['sabha_type'], 'mandal': sabha['mandal']}
+    query = {'sabha_type': sabha['sabha_type']}
     
     if search_query:
         search_condition = {}
@@ -720,7 +614,7 @@ def mark_attendance(request, sabha_id):
         elif search_type == 'type':
             search_condition = {'devotee_type': {'$regex': search_query, '$options': 'i'}}
         
-        query = {'$and': [{'sabha_type': sabha['sabha_type']}, {'mandal': sabha['mandal']}, search_condition]}
+        query = {'$and': [{'sabha_type': sabha['sabha_type']}, search_condition]}
     
     total_count = devotees_db.count(query)
     skip = (page - 1) * per_page
@@ -743,20 +637,6 @@ def mark_attendance(request, sabha_id):
     has_next = page < total_pages
     
     if request.method == 'POST':
-        # Check if final submit
-        if request.POST.get('final_submit'):
-            sabhas_db.update_one(
-                {'_id': ObjectId(sabha_id)},
-                {'is_finalized': True, 'finalized_at': datetime.now().isoformat(), 'finalized_by': request.user.username}
-            )
-            messages.success(request, 'Attendance finalized successfully! No further changes allowed.')
-            return redirect('sabha_list')
-        
-        # Check if sabha is already finalized
-        if sabha.get('is_finalized'):
-            messages.error(request, 'This sabha attendance has been finalized and cannot be edited.')
-            return redirect('sabha_list')
-        
         for devotee in devotees:
             devotee_object_id = str(devotee['_id'])
             status = request.POST.get(f'status_{devotee_object_id}', 'absent')
@@ -898,8 +778,7 @@ def mark_attendance(request, sabha_id):
         'page_obj': page_obj,
         'existing_attendance': existing_attendance,
         'search_query': search_query,
-        'total_count': total_count,
-        'is_finalized': sabha.get('is_finalized', False)
+        'total_count': total_count
     }
     return render(request, 'attendance/mark_attendance.html', context)
 
@@ -1361,7 +1240,6 @@ def upload_devotees(request):
         if form.is_valid():
             excel_file = form.cleaned_data['excel_file']
             sabha_type_filter = form.cleaned_data.get('sabha_type_filter')
-            mandal_filter = form.cleaned_data.get('mandal_filter')
             
             with tempfile.NamedTemporaryFile(delete=False, suffix='.xlsx') as tmp_file:
                 for chunk in excel_file.chunks():
@@ -1369,7 +1247,7 @@ def upload_devotees(request):
                 tmp_file_path = tmp_file.name
             
             try:
-                result, error = process_excel_file(tmp_file_path, sabha_type_filter, mandal_filter)
+                result, error = process_excel_file(tmp_file_path, sabha_type_filter)
                 
                 if error:
                     messages.error(request, error)
@@ -1632,7 +1510,7 @@ def user_profile(request):
     # Get user's allowed sabha types
     def get_user_sabha_types(user):
         if user.is_superuser:
-            return ['bal', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila']
+            return ['bal', 'yuvak', 'mahila', 'sanyukt']
         try:
             from admin_panel.mongodb_models import AdminUserManager
             admin_manager = AdminUserManager()

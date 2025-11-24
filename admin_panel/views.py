@@ -39,13 +39,14 @@ def create_user(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
         allowed_sabha_types = request.POST.getlist('allowed_sabha_types')
+        allowed_mandals = request.POST.getlist('allowed_mandals')
         is_admin = request.POST.get('is_admin') == 'on'
         
         try:
             admin_manager = AdminUserManager()
             
             # Create admin user record in MongoDB only
-            admin_manager.create_user(username, email, password, allowed_sabha_types, is_admin)
+            admin_manager.create_user(username, email, password, allowed_sabha_types, allowed_mandals, is_admin)
             
             messages.success(request, f'User {username} created successfully!')
             return redirect('admin_dashboard')
@@ -58,11 +59,23 @@ def create_user(request):
     sabha_choices = [
         ('bal', 'Bal Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha')
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha')
     ]
     
-    return render(request, 'admin_panel/create_user.html', {'sabha_choices': sabha_choices})
+    mandal_choices = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman')
+    ]
+    
+    return render(request, 'admin_panel/create_user.html', {
+        'sabha_choices': sabha_choices,
+        'mandal_choices': mandal_choices
+    })
 
 @login_required
 @user_passes_test(is_superuser)
@@ -77,6 +90,7 @@ def edit_user(request, user_id):
     if request.method == 'POST':
         email = request.POST.get('email')
         allowed_sabha_types = request.POST.getlist('allowed_sabha_types')
+        allowed_mandals = request.POST.getlist('allowed_mandals')
         is_admin = request.POST.get('is_admin') == 'on'
         password = request.POST.get('password')
         
@@ -85,6 +99,7 @@ def edit_user(request, user_id):
             update_data = {
                 'email': email,
                 'allowed_sabha_types': allowed_sabha_types,
+                'allowed_mandals': allowed_mandals,
                 'is_admin': is_admin
             }
             if password:
@@ -101,13 +116,23 @@ def edit_user(request, user_id):
     sabha_choices = [
         ('bal', 'Bal Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha')
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha')
+    ]
+    
+    mandal_choices = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman')
     ]
     
     return render(request, 'admin_panel/edit_user.html', {
         'admin_user': admin_user,
-        'sabha_choices': sabha_choices
+        'sabha_choices': sabha_choices,
+        'mandal_choices': mandal_choices
     })
 
 @login_required

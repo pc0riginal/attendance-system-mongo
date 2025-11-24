@@ -4,9 +4,19 @@ from .models import Devotee, Sabha, Attendance
 class DevoteeMongoForm(forms.Form):
     SABHA_CHOICES = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha'),
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
+    ]
+    
+    MANDAL_CHOICES = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman'),
     ]
     
     GENDER_CHOICES = [
@@ -20,14 +30,15 @@ class DevoteeMongoForm(forms.Form):
         ('karyakar', 'Karyakar'),
     ]
     
-    devotee_id = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated if empty'}))
+    mandal = forms.ChoiceField(choices=MANDAL_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    devotee_id = forms.CharField(max_length=20, required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Auto-generated based on mandal-sabha', 'readonly': True}))
     devotee_type = forms.ChoiceField(choices=DEVOTEE_TYPE_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     name = forms.CharField(max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
     contact_number = forms.CharField(max_length=15, widget=forms.TextInput(attrs={'class': 'form-control'}))
     date_of_birth = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
     gender = forms.ChoiceField(choices=GENDER_CHOICES, required=False, widget=forms.Select(attrs={'class': 'form-control'}))
     age = forms.IntegerField(required=False, widget=forms.NumberInput(attrs={'class': 'form-control', 'readonly': True}))
-    sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     address_line = forms.CharField(max_length=200, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     landmark = forms.CharField(max_length=100, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
     zone = forms.CharField(max_length=50, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
@@ -55,14 +66,26 @@ class DevoteeMongoForm(forms.Form):
 class SabhaForm(forms.Form):
     SABHA_CHOICES = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha'),
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
+    ]
+    
+    MANDAL_CHOICES = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman'),
     ]
     
     date = forms.DateField(widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
     sabha_type = forms.ChoiceField(choices=SABHA_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
+    mandal = forms.ChoiceField(choices=MANDAL_CHOICES, widget=forms.Select(attrs={'class': 'form-control'}))
     location = forms.CharField(widget=forms.TextInput(attrs={'class': 'form-control'}))
+    xetra = forms.CharField(initial='Palanpur', widget=forms.TextInput(attrs={'class': 'form-control', 'value': 'Palanpur'}))
     start_time = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}))
     end_time = forms.TimeField(widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}))
     
@@ -78,6 +101,23 @@ class SabhaForm(forms.Form):
 
 
 class DevoteeUploadForm(forms.Form):
+    SABHA_CHOICES = [
+        ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
+        ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
+        ('mahila', 'Mahila Sabha'),
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
+    ]
+    
+    MANDAL_CHOICES = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman'),
+    ]
+    
     excel_file = forms.FileField(
         label='Excel File',
         help_text='Upload .xlsx or .xls file with devotee data',
@@ -86,8 +126,14 @@ class DevoteeUploadForm(forms.Form):
             'accept': '.xlsx,.xls'
         })
     )
+    mandal_filter = forms.ChoiceField(
+        choices=[('', 'All Mandals')] + MANDAL_CHOICES,
+        required=False,
+        label='Mandal Filter',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
     sabha_type_filter = forms.ChoiceField(
-        choices=[('', 'All Sabha Types')] + Devotee.SABHA_CHOICES,
+        choices=[('', 'All Sabha Types')] + SABHA_CHOICES,
         required=False,
         label='Sabha Type Filter',
         widget=forms.Select(attrs={'class': 'form-control'})

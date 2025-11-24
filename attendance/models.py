@@ -41,9 +41,19 @@ class DevoteeManager:
 class Devotee:
     SABHA_CHOICES = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha'),
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
+    ]
+    
+    MANDAL_CHOICES = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman'),
     ]
     
     GENDER_CHOICES = [
@@ -63,7 +73,7 @@ class Devotee:
     objects = DevoteeManager()
     
     def __init__(self, devotee_id=None, devotee_type='haribhakt', name=None, contact_number=None, 
-                 date_of_birth=None, gender=None, age=None, sabha_type=None, address_line='', 
+                 date_of_birth=None, gender=None, age=None, sabha_type=None, mandal=None, address_line='', 
                  landmark='', zone='', join_date=None, photo_url=None, _id=None):
         self._id = _id or ObjectId()
         self.devotee_id = devotee_id
@@ -74,6 +84,7 @@ class Devotee:
         self.gender = gender
         self.age = age
         self.sabha_type = sabha_type
+        self.mandal = mandal
         self.address_line = address_line
         self.landmark = landmark
         self.zone = zone
@@ -96,6 +107,11 @@ class Devotee:
     
     def save(self):
         mongodb_manager = MongoDBManager('devotees')
+        
+        # Auto-generate devotee_id if not provided
+        if not self.devotee_id and self.mandal and self.sabha_type:
+            self.devotee_id = self._generate_devotee_id()
+        
         doc = {
             'devotee_id': self.devotee_id,
             'devotee_type': self.devotee_type,
@@ -105,6 +121,7 @@ class Devotee:
             'gender': self.gender,
             'age': self.age,
             'sabha_type': self.sabha_type,
+            'mandal': self.mandal,
             'address_line': self.address_line,
             'landmark': self.landmark,
             'zone': self.zone,
@@ -118,6 +135,41 @@ class Devotee:
             if result:
                 self._id = result.inserted_id
     
+    def _generate_devotee_id(self):
+        """Generate devotee ID: first 3 chars of mandal + sabha code + number"""
+        mongodb_manager = MongoDBManager('devotees')
+        
+        mandal_prefix = self.mandal[:3].upper() if self.mandal else 'UNK'
+        
+        # Map sabha types to specific codes
+        sabha_codes = {
+            'bal': 'BAL',
+            'balika': 'BLK',
+            'yuvak': 'YUV',
+            'yuvati': 'YUT',
+            'mahila': 'MAH',
+            'sanyukt-purush': 'SNP',
+            'sanyukt-mahila': 'SNM'
+        }
+        
+        sabha_prefix = sabha_codes.get(self.sabha_type, self.sabha_type[:3].upper())
+        
+        # Find the highest number for this mandal-sabha combination
+        prefix = f"{mandal_prefix}-{sabha_prefix}-"
+        existing_ids = mongodb_manager.find({'devotee_id': {'$regex': f'^{prefix}'}})
+        
+        max_num = 0
+        for doc in existing_ids:
+            devotee_id = doc.get('devotee_id', '')
+            if devotee_id.startswith(prefix):
+                try:
+                    num = int(devotee_id.split('-')[-1])
+                    max_num = max(max_num, num)
+                except (ValueError, IndexError):
+                    continue
+        
+        return f"{prefix}{max_num + 1:03d}"
+    
     @classmethod
     def from_dict(cls, doc):
         return cls(
@@ -130,6 +182,7 @@ class Devotee:
             gender=doc.get('gender'),
             age=doc.get('age'),
             sabha_type=doc.get('sabha_type'),
+            mandal=doc.get('mandal'),
             address_line=doc.get('address_line', ''),
             landmark=doc.get('landmark', ''),
             zone=doc.get('zone', ''),
@@ -170,9 +223,19 @@ class SabhaManager:
 class Sabha:
     SABHA_CHOICES = [
         ('bal', 'Bal Sabha'),
+        ('balika', 'Balika Sabha'),
         ('yuvak', 'Yuvak Sabha'),
+        ('yuvati', 'Yuvati Sabha'),
         ('mahila', 'Mahila Sabha'),
-        ('sanyukt', 'Sanyukt Sabha'),
+        ('sanyukt-purush', 'Sanyukt Purush Sabha'),
+        ('sanyukt-mahila', 'Sanyukt Mahila Sabha'),
+    ]
+    
+    MANDAL_CHOICES = [
+        ('sardarnagar', 'Sardarnagar'),
+        ('akeshan', 'Akeshan'),
+        ('dharti', 'Dharti'),
+        ('gathaman', 'Gathaman'),
     ]
     
     class DoesNotExist(Exception):
@@ -180,7 +243,7 @@ class Sabha:
     
     objects = SabhaManager()
     
-    def __init__(self, date=None, sabha_type=None, location=None, start_time=None, end_time=None, mandal=None, xetra=None, _id=None):
+    def __init__(self, date=None, sabha_type=None, location=None, start_time=None, end_time=None, mandal=None, xetra='Palanpur', _id=None):
         self._id = _id or ObjectId()
         self.date = date
         self.sabha_type = sabha_type
@@ -188,7 +251,7 @@ class Sabha:
         self.start_time = start_time
         self.end_time = end_time
         self.mandal = mandal
-        self.xetra = xetra
+        self.xetra = xetra or 'Palanpur'
     
     @property
     def pk(self):
@@ -213,7 +276,7 @@ class Sabha:
             'start_time': self.start_time,
             'end_time': self.end_time,
             'mandal': self.mandal,
-            'xetra': self.xetra
+            'xetra': self.xetra or 'Palanpur'
         }
         if hasattr(self, '_id') and self._id:
             mongodb_manager.update_one({'_id': self._id}, doc)
@@ -232,7 +295,7 @@ class Sabha:
             start_time=doc.get('start_time'),
             end_time=doc.get('end_time'),
             mandal=doc.get('mandal'),
-            xetra=doc.get('xetra')
+            xetra=doc.get('xetra', 'Palanpur')
         )
     
     def __str__(self):
