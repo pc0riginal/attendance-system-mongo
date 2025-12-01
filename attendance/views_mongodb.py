@@ -1595,6 +1595,7 @@ def process_devotees_batch(request):
     
     valid_rows = request.session['upload_data']
     total_records = len(valid_rows)
+    total_batches = (total_records + (batch_size * num_threads) - 1) // (batch_size * num_threads)
     
     # Calculate batch range for parallel processing
     start_idx = current_batch * batch_size * num_threads
@@ -1652,7 +1653,8 @@ def process_devotees_batch(request):
         'updated': request.session.get('total_updated', 0),
         'complete': is_complete,
         'percentage': round((processed / total_records) * 100),
-        'current_batch': current_batch + 1
+        'current_batch': current_batch + 1,
+        'total_batches': total_batches
     })
 
 @login_required

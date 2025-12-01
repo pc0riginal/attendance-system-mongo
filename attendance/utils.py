@@ -62,145 +62,161 @@ def validate_mandal(mandal):
     return True, None
 
 def process_excel_file(file_path, sabha_type_filter=None, mandal_filter=None):
-    """Process Excel file and validate data"""
+    """Process Excel file and validate data in batches"""
     try:
         # Read Excel file
         df = pd.read_excel(file_path)
         
         # Expected columns
         required_columns = ['devotee_id', 'name', 'contact_number', 'mandal', 'sabha_type', 'devotee_type', 'date_of_birth', 'gender']
-        optional_columns = ['age', 'address_line', 'landmark', 'zone', 'join_date']
         
         # Check if required columns exist
         missing_columns = [col for col in required_columns if col not in df.columns]
         if missing_columns:
             return None, f"Missing required columns: {', '.join(missing_columns)}"
         
+        # Pre-load reference data for batch validation
+        from .mandal_utils import get_mandal_names
+        valid_mandals = set(get_mandal_names())
+        valid_sabha_types = {'bal', 'balika', 'yuvak', 'yuvati', 'mahila', 'sanyukt-purush', 'sanyukt-mahila'}
+        valid_devotee_types = {'haribhakt', 'gunbhavi', 'karyakar'}
+        valid_genders = {'male', 'female'}
+        
         errors = []
         valid_rows = []
+        batch_size = 100
         
-        for index, row in df.iterrows():
-            row_errors = []
+        # Process in batches
+        for batch_start in range(0, len(df), batch_size):
+            batch_end = min(batch_start + batch_size, len(df))
+            batch_df = df.iloc[batch_start:batch_end]
             
-            # Validate devotee_id (mandatory string with new format)
-            if not row['devotee_id'] or pd.isna(row['devotee_id']):
-                row_errors.append("Devotee ID is required")
-            else:
-                devotee_id_str = str(row['devotee_id']).strip()
-                # Check format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)
-                if not re.match(r'^[A-Z]{3}-[A-Z]{3}-\d{3}$', devotee_id_str):
-                    row_errors.append("Devotee ID must be in format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)")
-            
-            # Validate name (mandatory)
-            if not row['name'] or pd.isna(row['name']) or str(row['name']).strip() == '':
-                row_errors.append("Name is required")
-            
-            # Validate phone (mandatory)
-            phone_valid, phone_error = validate_phone(row['contact_number'])
-            if not phone_valid:
-                row_errors.append(phone_error)
-            
-            # Validate mandal (mandatory)
-            mandal_valid, mandal_error = validate_mandal(row['mandal'])
-            if not mandal_valid:
-                row_errors.append(mandal_error)
-            
-            # Validate sabha type (mandatory)
-            sabha_valid, sabha_error = validate_sabha_type(row['sabha_type'])
-            if not sabha_valid:
-                row_errors.append(sabha_error)
-            
-            # Validate devotee_type (mandatory)
-            if not row['devotee_type'] or pd.isna(row['devotee_type']):
-                row_errors.append("Devotee type is required")
-            else:
-                devotee_type_str = str(row['devotee_type']).lower().strip()
-                valid_types = ['haribhakt', 'gunbhavi', 'karyakar']
-                if devotee_type_str not in valid_types:
-                    row_errors.append(f"Invalid devotee type. Must be one of: {', '.join(valid_types)}")
-            
-            # Validate date_of_birth (mandatory)
-            if not row['date_of_birth'] or pd.isna(row['date_of_birth']):
-                row_errors.append("Date of birth is required")
-            else:
-                try:
-                    if isinstance(row['date_of_birth'], str):
-                        dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
-                    else:
-                        dob = row['date_of_birth'].date()
-                    
-                    if dob > datetime.now().date():
-                        row_errors.append("Date of birth cannot be in the future")
-                except:
-                    row_errors.append("Invalid date of birth format. Use YYYY-MM-DD")
-            
-            # Validate gender (mandatory)
-            if not row['gender'] or pd.isna(row['gender']):
-                row_errors.append("Gender is required")
-            else:
-                gender_str = str(row['gender']).lower().strip()
-                valid_genders = ['male', 'female']
-                if gender_str not in valid_genders:
-                    row_errors.append(f"Invalid gender. Must be one of: {', '.join(valid_genders)}")
-            
-            # Apply filters if specified
-            if sabha_type_filter and str(row['sabha_type']).lower() != sabha_type_filter:
-                continue
-            if mandal_filter and str(row['mandal']).lower() != mandal_filter:
-                continue
-            
-            if row_errors:
-                errors.append({
-                    'row': index + 2,  # +2 because Excel rows start at 1 and we have header
-                    'errors': row_errors,
-                    'data': row.to_dict()
-                })
-            else:
-                # Calculate age from date_of_birth
-                age = 0
-                dob = None
-                try:
-                    if isinstance(row['date_of_birth'], str):
-                        dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
-                    else:
-                        dob = row['date_of_birth'].date()
-                    
-                    today = datetime.now().date()
-                    age = today.year - dob.year
-                    if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
-                        age -= 1
-                except:
-                    pass
+            for index, row in batch_df.iterrows():
+                row_errors = []
                 
-                # Prepare valid row data
-                valid_row = {
-                    'devotee_id': str(row['devotee_id']).strip(),
-                    'name': str(row['name']).strip(),
-                    'contact_number': str(row['contact_number']).strip(),
-                    'mandal': str(row['mandal']).lower().strip(),
-                    'sabha_type': str(row['sabha_type']).lower().strip(),
-                    'devotee_type': str(row['devotee_type']).lower().strip(),
-                    'date_of_birth': dob,
-                    'gender': str(row['gender']).lower().strip(),
-                    'age': int(row.get('age', age)) if not pd.isna(row.get('age')) and str(row.get('age')).isdigit() else age,
-                    'address_line': str(row.get('address_line', '')).strip() if not pd.isna(row.get('address_line')) else '',
-                    'landmark': str(row.get('landmark', '')).strip() if not pd.isna(row.get('landmark')) else '',
-                    'zone': str(row.get('zone', '')).strip() if not pd.isna(row.get('zone')) else '',
-                    'photo_url': '',
-                    'join_date': datetime.now().date()
-                }
+                # Validate devotee_id (mandatory string with new format)
+                if not row['devotee_id'] or pd.isna(row['devotee_id']):
+                    row_errors.append("Devotee ID is required")
+                else:
+                    devotee_id_str = str(row['devotee_id']).strip()
+                    # Check format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)
+                    if not re.match(r'^[A-Z]{3}-[A-Z]{3}-\d{3}$', devotee_id_str):
+                        row_errors.append("Devotee ID must be in format: MANDAL-SABHA-NUMBER (e.g., SAR-YUV-001)")
                 
-                # Handle join_date if provided
-                if 'join_date' in row and not pd.isna(row['join_date']):
+                # Validate name (mandatory)
+                if not row['name'] or pd.isna(row['name']) or str(row['name']).strip() == '':
+                    row_errors.append("Name is required")
+                
+                # Validate phone (mandatory)
+                phone_valid, phone_error = validate_phone(row['contact_number'])
+                if not phone_valid:
+                    row_errors.append(phone_error)
+                
+                # Validate mandal (batch validation)
+                if not row['mandal'] or pd.isna(row['mandal']):
+                    row_errors.append("Mandal is required")
+                else:
+                    mandal_str = str(row['mandal']).lower().strip()
+                    if mandal_str not in valid_mandals:
+                        row_errors.append(f"Invalid mandal")
+                
+                # Validate sabha type (batch validation)
+                if not row['sabha_type'] or pd.isna(row['sabha_type']):
+                    row_errors.append("Sabha type is required")
+                else:
+                    sabha_str = str(row['sabha_type']).lower().strip()
+                    if sabha_str not in valid_sabha_types:
+                        row_errors.append("Invalid sabha type")
+                
+                # Validate devotee_type (batch validation)
+                if not row['devotee_type'] or pd.isna(row['devotee_type']):
+                    row_errors.append("Devotee type is required")
+                else:
+                    devotee_type_str = str(row['devotee_type']).lower().strip()
+                    if devotee_type_str not in valid_devotee_types:
+                        row_errors.append("Invalid devotee type")
+                
+                # Validate date_of_birth (mandatory)
+                if not row['date_of_birth'] or pd.isna(row['date_of_birth']):
+                    row_errors.append("Date of birth is required")
+                else:
                     try:
-                        if isinstance(row['join_date'], str):
-                            valid_row['join_date'] = datetime.strptime(row['join_date'], '%Y-%m-%d').date()
+                        if isinstance(row['date_of_birth'], str):
+                            dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
                         else:
-                            valid_row['join_date'] = row['join_date'].date()
+                            dob = row['date_of_birth'].date()
+                        
+                        if dob > datetime.now().date():
+                            row_errors.append("Date of birth cannot be in the future")
                     except:
-                        valid_row['join_date'] = datetime.now().date()
+                        row_errors.append("Invalid date of birth format. Use YYYY-MM-DD")
                 
-                valid_rows.append(valid_row)
+                # Validate gender (batch validation)
+                if not row['gender'] or pd.isna(row['gender']):
+                    row_errors.append("Gender is required")
+                else:
+                    gender_str = str(row['gender']).lower().strip()
+                    if gender_str not in valid_genders:
+                        row_errors.append("Invalid gender")
+                
+                # Apply filters if specified
+                if sabha_type_filter and str(row['sabha_type']).lower() != sabha_type_filter:
+                    continue
+                if mandal_filter and str(row['mandal']).lower() != mandal_filter:
+                    continue
+                
+                if row_errors:
+                    errors.append({
+                        'row': index + 2,  # +2 because Excel rows start at 1 and we have header
+                        'errors': row_errors,
+                        'data': row.to_dict()
+                    })
+                else:
+                    # Calculate age from date_of_birth
+                    age = 0
+                    dob = None
+                    try:
+                        if isinstance(row['date_of_birth'], str):
+                            dob = datetime.strptime(row['date_of_birth'], '%Y-%m-%d').date()
+                        else:
+                            dob = row['date_of_birth'].date()
+                        
+                        today = datetime.now().date()
+                        age = today.year - dob.year
+                        if today.month < dob.month or (today.month == dob.month and today.day < dob.day):
+                            age -= 1
+                    except:
+                        pass
+                    
+                    # Prepare valid row data
+                    valid_row = {
+                        'devotee_id': str(row['devotee_id']).strip(),
+                        'name': str(row['name']).strip(),
+                        'contact_number': str(row['contact_number']).strip(),
+                        'mandal': str(row['mandal']).lower().strip(),
+                        'sabha_type': str(row['sabha_type']).lower().strip(),
+                        'devotee_type': str(row['devotee_type']).lower().strip(),
+                        'date_of_birth': dob,
+                        'gender': str(row['gender']).lower().strip(),
+                        'age': int(row.get('age', age)) if not pd.isna(row.get('age')) and str(row.get('age')).isdigit() else age,
+                        'address_line': str(row.get('address_line', '')).strip() if not pd.isna(row.get('address_line')) else '',
+                        'landmark': str(row.get('landmark', '')).strip() if not pd.isna(row.get('landmark')) else '',
+                        'zone': str(row.get('zone', '')).strip() if not pd.isna(row.get('zone')) else '',
+                        'photo_url': '',
+                        'join_date': datetime.now().date()
+                    }
+                    
+                    # Handle join_date if provided
+                    if 'join_date' in row and not pd.isna(row['join_date']):
+                        try:
+                            if isinstance(row['join_date'], str):
+                                valid_row['join_date'] = datetime.strptime(row['join_date'], '%Y-%m-%d').date()
+                            else:
+                                valid_row['join_date'] = row['join_date'].date()
+                        except:
+                            valid_row['join_date'] = datetime.now().date()
+                    
+                    valid_rows.append(valid_row)
         
         return {'valid_rows': valid_rows, 'errors': errors}, None
         
