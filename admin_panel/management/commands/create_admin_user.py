@@ -2,6 +2,7 @@ from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from admin_panel.mongodb_models import AdminUserManager
 from attendance.models import UserProfile
+from attendance.mandal_utils import get_mandal_names
 
 class Command(BaseCommand):
     help = 'Create an admin user with full permissions'
@@ -24,6 +25,9 @@ class Command(BaseCommand):
                 django_user = User.objects.create_superuser(username=username, email=email, password=password)
                 self.stdout.write(f'Created Django superuser: {username}')
             
+            # Get all mandals from database
+            all_mandals = get_mandal_names()
+            
             # Create UserProfile with all sabha types
             django_user = User.objects.get(username=username)
             profile, created = UserProfile.objects.get_or_create(user=django_user)
@@ -40,6 +44,7 @@ class Command(BaseCommand):
                     email=email,
                     password=password,
                     allowed_sabha_types=['bal', 'yuvak', 'mahila', 'sanyukt'],
+                    allowed_mandals=all_mandals,
                     is_admin=True
                 )
                 self.stdout.write(f'Created admin user in MongoDB: {username}')
