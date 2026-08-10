@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Temple Attendance System{% endblock %}</title>
+    <script>
+        // Apply saved theme before any content paints to avoid a flash of light theme
+        (function() {
+            try {
+                if (localStorage.getItem('theme') === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -98,6 +108,90 @@
             border-color: #444 !important;
             color: #ffffff !important;
         }
+
+        /* ---- Extended dark mode coverage ---- */
+        [data-theme="dark"] h1,
+        [data-theme="dark"] h2,
+        [data-theme="dark"] h3,
+        [data-theme="dark"] h4,
+        [data-theme="dark"] h5,
+        [data-theme="dark"] h6,
+        [data-theme="dark"] p,
+        [data-theme="dark"] label,
+        [data-theme="dark"] .lead,
+        [data-theme="dark"] small {
+            color: #f1f1f1 !important;
+        }
+        [data-theme="dark"] .text-dark { color: #f1f1f1 !important; }
+        [data-theme="dark"] .text-muted { color: #a0a0a0 !important; }
+
+        /* Utility backgrounds that are white/light in light mode */
+        [data-theme="dark"] .bg-white,
+        [data-theme="dark"] .bg-light {
+            background-color: #2a2a2a !important;
+            color: #f1f1f1 !important;
+        }
+
+        /* Hero / page background */
+        [data-theme="dark"] .hero-bg {
+            background: #121212 !important;
+            background-image: none !important;
+        }
+
+        /* List groups (used in dashboard, more-menu, modals) */
+        [data-theme="dark"] .list-group-item {
+            background-color: #1e1e1e !important;
+            color: #f1f1f1 !important;
+            border-color: #333 !important;
+        }
+        [data-theme="dark"] .list-group-item-action:hover {
+            background-color: #2a2a2a !important;
+        }
+
+        /* Modals */
+        [data-theme="dark"] .modal-content {
+            background-color: #1e1e1e !important;
+            color: #f1f1f1 !important;
+        }
+        [data-theme="dark"] .modal-header,
+        [data-theme="dark"] .modal-footer {
+            border-color: #333 !important;
+        }
+        [data-theme="dark"] .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        /* Tabs */
+        [data-theme="dark"] .nav-tabs { border-bottom-color: #333 !important; }
+        [data-theme="dark"] .nav-tabs .nav-link { color: #cfcfcf !important; }
+        [data-theme="dark"] .nav-tabs .nav-link.active {
+            background-color: #1e1e1e !important;
+            border-color: #333 #333 #1e1e1e !important;
+            color: #ffffff !important;
+        }
+
+        /* Neutral buttons in dark mode */
+        [data-theme="dark"] .btn-secondary { background: #3a3a3a !important; color: #f1f1f1 !important; }
+        [data-theme="dark"] .btn-outline-secondary { color: #cfcfcf !important; border-color: #555 !important; }
+        [data-theme="dark"] .btn-outline-primary { color: #8f88ff !important; border-color: #6C63FF !important; }
+
+        /* Spinners / dropdowns */
+        [data-theme="dark"] .dropdown-menu {
+            background-color: #1e1e1e !important;
+            border-color: #333 !important;
+        }
+        [data-theme="dark"] .dropdown-item { color: #f1f1f1 !important; }
+        [data-theme="dark"] .dropdown-item:hover { background-color: #2a2a2a !important; }
+
+        /* Table striped rows */
+        [data-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
+            background-color: rgba(255, 255, 255, 0.03) !important;
+            color: #f1f1f1 !important;
+        }
+        [data-theme="dark"] .table > :not(caption) > * > * {
+            color: #f1f1f1 !important;
+        }
+
         * { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--white-lilac); color: var(--dark-blue); line-height: 1.6; font-size: 16px; }
         
@@ -342,7 +436,33 @@
         .btn-check:checked + .btn-outline-success { background: var(--emerald); border-color: var(--emerald); color: white; }
         .btn-check:checked + .btn-outline-warning { background: var(--amber); border-color: var(--amber); color: white; }
         .btn-check:checked + .btn-outline-danger { background: var(--coral-red); border-color: var(--coral-red); color: white; }
-        
+
+        /* Attendance status toggle buttons (Present / Late / Absent) */
+        .btn-group .btn-check + .btn {
+            border-radius: 10px;
+            padding: 10px 6px;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            flex: 1 1 0;
+            min-width: 0;
+        }
+        /* Ensure the three toggles always fit side-by-side on phones */
+        @media (max-width: 767.98px) {
+            .btn-group .btn-check + .btn {
+                padding: 10px 4px;
+                font-size: 0.8rem;
+                gap: 3px;
+            }
+            .btn-group .btn-check + .btn i { font-size: 0.85rem; }
+        }
+        /* On very small phones, keep icon + label but shrink further */
+        @media (max-width: 359.98px) {
+            .btn-group .btn-check + .btn {
+                font-size: 0.72rem;
+                padding: 9px 2px;
+            }
+        }
+
         /* Responsive Typography - Accessible Contrast */
         h1, h2, h3, h4, h5, h6 { font-weight: 700; color: var(--dark-blue); line-height: 1.3; }
         .display-1 { font-size: 3.5rem; font-weight: 800; letter-spacing: -0.02em; }
