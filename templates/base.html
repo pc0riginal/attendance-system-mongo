@@ -40,6 +40,8 @@
         
         [data-theme="dark"] .card {
             background: #1e1e1e !important;
+            background-color: #1e1e1e !important;
+            --bs-card-bg: #1e1e1e;
             color: #ffffff !important;
             border-color: #333 !important;
         }
@@ -642,7 +644,7 @@
                     <a class="nav-link" href="{% url 'admin_dashboard' %}"><i class="bi bi-shield-check"></i> Admin Panel</a>
                     {% endif %}
                     <a class="nav-link" href="{% url 'user_profile' %}"><i class="bi bi-person-circle"></i> Profile</a>
-                    <button class="nav-link btn btn-link" onclick="toggleDarkMode()" style="border: none; background: none;"><i class="bi bi-moon-fill" id="theme-icon"></i> <span id="theme-text">Dark</span></button>
+                    <button class="nav-link btn btn-link" onclick="toggleDarkMode()" style="border: none; background: none;"><i class="bi bi-moon-fill me-2" id="theme-icon"></i><span id="theme-text">Dark</span></button>
                     <a class="nav-link" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right"></i> Logout</a>
                 </div>
             </div>
