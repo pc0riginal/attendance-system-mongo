@@ -53,11 +53,11 @@
                                     </div>
                                 </div>
                                 <div class="d-flex gap-2">
-                                    <a href="{% url 'mark_attendance' sabha.id %}" class="btn btn-temple btn-sm">
+                                    <a href="{% url 'mark_attendance' sabha.id %}" class="btn btn-temple btn-sm btn-icon">
                                         <i class="bi bi-check-circle"></i>
                                     </a>
                                     {% if user.is_superuser %}
-                                    <button class="btn btn-temple btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
+                                    <button class="btn btn-outline-danger btn-sm btn-icon" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                     {% endif %}
@@ -115,7 +115,7 @@
                                                 <i class="bi bi-check-circle"></i> Mark
                                             </a>
                                             {% if user.is_superuser %}
-                                            <button class="btn btn-temple btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
+                                            <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('sabha', '{{ sabha.id }}', '{{ sabha.date }} - {{ sabha.get_sabha_type_display }}')">
                                                 <i class="bi bi-trash"></i> Delete
                                             </button>
                                             {% endif %}

@@ -34,8 +34,8 @@
                                     {% endif %}
                                 </div>
                                 <div>
-                                    <button class="btn btn-sm btn-outline-danger" style="width: 36px; height: 32px; padding: 0;" onclick="confirmDelete('mandal', '{{ mandal.id }}', '{{ mandal.display_name }}')">
-                                        <i class="bi bi-trash" style="font-size: 0.8rem;"></i>
+                                    <button class="btn btn-sm btn-outline-danger btn-icon" onclick="confirmDelete('mandal', '{{ mandal.id }}', '{{ mandal.display_name }}')">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
                             </div>
@@ -66,7 +66,7 @@
                                         {% if mandal.created_at %}<div>{{ mandal.created_at|date:"M d, Y H:i" }}</div>{% endif %}
                                     </td>
                                     <td>
-                                        <button class="btn btn-temple btn-sm" onclick="confirmDelete('mandal', '{{ mandal.id }}', '{{ mandal.display_name }}')">
+                                        <button class="btn btn-outline-danger btn-sm" onclick="confirmDelete('mandal', '{{ mandal.id }}', '{{ mandal.display_name }}')">
                                             <i class="bi bi-trash"></i> Delete
                                         </button>
                                     </td>

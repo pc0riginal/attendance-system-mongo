@@ -162,7 +162,75 @@
         }
         .btn-temple:active { transform: translateY(-1px); }
         .btn-lg { min-height: 60px; padding: 18px 36px; font-size: 1.1rem; border-radius: 16px; }
-        
+
+        /* ============================================================
+           UNIFIED BUTTON SYSTEM
+           Harmonize all Bootstrap buttons with the rounded temple look
+           ============================================================ */
+        .btn {
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.25s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-decoration: none;
+            line-height: 1.2;
+        }
+        .btn:focus, .btn:focus-visible {
+            box-shadow: 0 0 0 3px rgba(108, 99, 255, 0.25);
+            outline: none;
+        }
+        /* Default (medium) size */
+        .btn:not(.btn-sm):not(.btn-lg):not(.btn-close) {
+            padding: 10px 20px;
+            min-height: 44px;
+            font-size: 0.95rem;
+        }
+        /* Small size — consistent everywhere */
+        .btn-sm {
+            border-radius: 10px;
+            padding: 7px 14px;
+            min-height: 36px;
+            font-size: 0.85rem;
+        }
+        /* Solid variants: subtle lift on hover */
+        .btn-success, .btn-danger, .btn-secondary, .btn-warning, .btn-primary {
+            border: none;
+        }
+        .btn-success:hover, .btn-danger:hover, .btn-secondary:hover,
+        .btn-warning:hover, .btn-primary:hover,
+        .btn-outline-primary:hover, .btn-outline-secondary:hover,
+        .btn-outline-success:hover, .btn-outline-danger:hover,
+        .btn-outline-warning:hover {
+            transform: translateY(-2px);
+        }
+        .btn-secondary { background: #6B7280; }
+        .btn-secondary:hover { background: #5b616b; }
+        .btn-danger { background: var(--coral-red); }
+        .btn-success { background: var(--emerald); }
+        .btn-warning { background: var(--amber); color: #fff; }
+        /* Outline buttons keep a 2px border to match form controls */
+        .btn-outline-primary, .btn-outline-secondary,
+        .btn-outline-success, .btn-outline-danger,
+        .btn-outline-warning {
+            border-width: 2px;
+        }
+        .btn-temple.btn-sm { padding: 8px 16px; min-height: 38px; font-size: 0.9rem; border-radius: 12px; }
+
+        /* Reusable square icon-only button (replaces inline width/height styles) */
+        .btn-icon {
+            width: 38px;
+            height: 38px;
+            min-height: 38px;
+            padding: 0;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .btn-icon.btn-sm { width: 34px; height: 34px; min-height: 34px; }
+        .btn-icon i { font-size: 0.95rem; line-height: 1; }
+
         /* Cards - Soft, Rounded with Subtle Shadows */
         .card { 
             background: white; 
@@ -264,7 +332,7 @@
             box-shadow: 0 8px 32px rgba(108, 99, 255, 0.4);
         }
         
-        @media (max-width: 768px) {
+        @media (max-width: 991.98px) {
             .floating-btn {
                 bottom: 100px;
             }
@@ -337,41 +405,96 @@
             color: #6C63FF !important;
         }
         
-        @media (max-width: 768px) {
-            .btn-temple { padding: 16px 28px; min-height: 56px; font-size: 1rem; }
-            .btn-lg { padding: 16px 28px; min-height: 56px; font-size: 1rem; }
-            .card-body { padding: 24px; }
-            .card-header { padding: 24px; }
-            .display-1 { font-size: 2.8rem; }
-            .lead { font-size: 1.1rem; }
+        /* ============================================================
+           RESPONSIVE LAYOUT
+           Breakpoints:
+             - Bottom tab bar shows below 992px (d-lg-none)
+             - Full navbar menu shows at 992px+ (navbar-expand-lg)
+           ============================================================ */
+
+        /* Tablet & below (< 992px): rely on bottom tab bar for nav */
+        @media (max-width: 991.98px) {
+            body { padding-bottom: 90px; }
             .navbar-collapse { display: none !important; }
             .navbar-toggler { display: none !important; }
-            .navbar-brand span { display: inline !important; }
-            .navbar { position: static !important; }
-            body { padding-bottom: 100px; font-size: 16px; }
-            .container-fluid { padding-bottom: 20px; }
-            .container { padding-bottom: 20px; }
-            .hero-bg { margin-bottom: 20px !important; min-height: 50vh; }
-            .tab-content { margin-bottom: 20px; }
-            .card:last-child { margin-bottom: 20px; }
+            .navbar { position: sticky !important; top: 0; z-index: 1030; }
+            .bottom-tab-bar { display: block; }
         }
-        
-        @media (min-width: 769px) {
-            .bottom-tab-bar { display: none; }
+
+        /* Show bottom tab bar only below the lg breakpoint */
+        @media (min-width: 992px) {
+            .bottom-tab-bar { display: none !important; }
+            body { padding-bottom: 0; }
         }
-        
-        /* Fix for dashboard page */
-        @media (max-width: 768px) {
-            .hero-bg {
-                position: relative;
-                z-index: 1;
-            }
+
+        /* Tablets (768px - 991px) */
+        @media (max-width: 991.98px) {
+            .card-body { padding: 22px; }
+            .card-header { padding: 22px; }
+            .display-1 { font-size: 3rem; }
+            .table thead th { padding: 14px; }
+            .table tbody td { padding: 14px; }
+        }
+
+        /* Phones (< 768px) */
+        @media (max-width: 767.98px) {
+            html { font-size: 15px; }
+            body { padding-bottom: 84px; }
+
+            .btn-temple { padding: 14px 22px; min-height: 52px; font-size: 1rem; }
+            .btn-lg { padding: 14px 22px; min-height: 52px; font-size: 1rem; }
+
+            .card { border-radius: 18px; }
+            .card-body { padding: 16px; }
+            .card-header { padding: 16px; font-size: 1rem; }
+
+            .stat-card, .stat-card-secondary { border-radius: 20px; }
+            .stat-card h2, .stat-card-secondary h2 { font-size: 1.5rem; }
+
+            .display-1 { font-size: 2.2rem; }
+            .lead { font-size: 1rem; }
+            h2 { font-size: 1.4rem; }
+            h4 { font-size: 1.15rem; }
+
+            .container, .container-fluid { padding-left: 12px; padding-right: 12px; }
+
+            .hero-bg { min-height: auto; padding-top: 2rem !important; padding-bottom: 2rem !important; margin-bottom: 16px !important; }
+            .hero-bg { position: relative; z-index: 1; }
+
+            .form-control, .form-select { min-height: 46px; padding: 10px 14px; }
+
+            /* Compact tables when they must scroll */
+            .table thead th, .table tbody td { padding: 10px; font-size: 0.9rem; }
+
+            /* Stack action button groups full width */
+            .d-flex.gap-2 .btn, .d-flex.gap-3 .btn { flex: 1 1 auto; }
+
+            .tab-content { margin-bottom: 16px; }
+            .card:last-child { margin-bottom: 16px; }
+
             .bottom-tab-bar {
                 position: fixed !important;
                 bottom: 0 !important;
-                z-index: 1001 !important;
+                z-index: 1040 !important;
             }
         }
+
+        /* Small phones (< 400px) */
+        @media (max-width: 399.98px) {
+            .display-1 { font-size: 1.9rem; }
+            .bottom-tab { font-size: 0.6rem; }
+            .bottom-tab i { font-size: 1.1rem; }
+            .stat-card h2, .stat-card-secondary h2 { font-size: 1.3rem; }
+        }
+
+        /* Make all tables horizontally scrollable on small screens without breaking layout */
+        @media (max-width: 991.98px) {
+            .table-responsive-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        }
+
+        /* Prevent horizontal page overflow globally */
+        html, body { max-width: 100%; overflow-x: hidden; }
+        img { max-width: 100%; height: auto; }
     </style>
 </head>
 <body>
@@ -423,7 +546,7 @@
 
     <!-- Bottom Tab Bar for Mobile -->
     {% if user.is_authenticated %}
-    <div class="bottom-tab-bar d-md-none">
+    <div class="bottom-tab-bar d-lg-none">
         <div class="d-flex">
             <a href="{% url 'dashboard' %}" class="bottom-tab{% if request.resolver_match.url_name == 'dashboard' %} active{% endif %}">
                 <i class="bi bi-speedometer2"></i>
