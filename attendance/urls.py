@@ -23,6 +23,9 @@ urlpatterns = [
     path('reports/analytics/', views.attendance_analytics, name='attendance_analytics'),
     path('reports/export/', views.export_attendance, name='export_attendance'),
     
+    # Export devotees (admin only)
+    path('devotees-export/', views.export_devotees, name='export_devotees'),
+
     # Upload
     path('upload-devotees/', views.upload_devotees, name='upload_devotees'),
     path('process-batch/', views.process_devotees_batch, name='process_devotees_batch'),

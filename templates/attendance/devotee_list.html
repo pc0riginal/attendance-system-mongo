@@ -9,9 +9,16 @@
         <h4><i class="bi bi-people"></i> <span class="d-none d-sm-inline">Devotees</span></h4>
         <small class="text-muted">{{ total_count }} total devotees</small>
     </div>
-    <a href="{% url 'devotee_add' %}" class="btn btn-temple btn-sm">
-        <i class="bi bi-plus"></i> Add
-    </a>
+    <div class="d-flex gap-2">
+        {% if user.is_superuser %}
+        <a href="{% url 'export_devotees' %}" class="btn btn-outline-success btn-sm">
+            <i class="bi bi-file-earmark-excel"></i> <span class="d-none d-sm-inline">Download Excel</span>
+        </a>
+        {% endif %}
+        <a href="{% url 'devotee_add' %}" class="btn btn-temple btn-sm">
+            <i class="bi bi-plus"></i> Add
+        </a>
+    </div>
 </div>
 
 <div class="mb-3">

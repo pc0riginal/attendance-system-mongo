@@ -1440,6 +1440,88 @@ def export_attendance(request):
     return response
 
 @login_required
+def export_devotees(request):
+    """Admin-only export of all devotee data (all fields) to an XLSX file."""
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from io import BytesIO
+    from datetime import datetime
+
+    # Restrict to admin/superuser accounts only
+    if not request.user.is_superuser:
+        return HttpResponse('Unauthorized: admin access required', status=403)
+
+    devotees = list(devotees_db.find(sort=[('mandal', 1), ('sabha_type', 1), ('name', 1)]))
+
+    # Define columns (all devotee fields)
+    columns = [
+        ('devotee_id', 'Devotee ID'),
+        ('devotee_type', 'Devotee Type'),
+        ('name', 'Name'),
+        ('contact_number', 'Contact Number'),
+        ('date_of_birth', 'Date of Birth'),
+        ('gender', 'Gender'),
+        ('age', 'Age'),
+        ('sabha_type', 'Sabha Type'),
+        ('mandal', 'Mandal'),
+        ('address_line', 'Address'),
+        ('landmark', 'Landmark'),
+        ('zone', 'Zone'),
+        ('join_date', 'Join Date'),
+        ('photo_url', 'Photo URL'),
+    ]
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = 'Devotees'
+
+    header_font = Font(bold=True, color='FFFFFF')
+    header_fill = PatternFill(start_color='2E4057', end_color='2E4057', fill_type='solid')
+    center_align = Alignment(horizontal='center', vertical='center')
+
+    # Header row
+    for col_idx, (_, header) in enumerate(columns, 1):
+        cell = ws.cell(row=1, column=col_idx, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center_align
+
+    def to_cell_value(value):
+        if value is None:
+            return ''
+        if isinstance(value, datetime):
+            return value.strftime('%Y-%m-%d')
+        return value
+
+    # Data rows
+    for row_idx, devotee in enumerate(devotees, 2):
+        for col_idx, (field, _) in enumerate(columns, 1):
+            ws.cell(row=row_idx, column=col_idx, value=to_cell_value(devotee.get(field)))
+
+    # Auto-size columns for readability
+    for col_idx, (field, header) in enumerate(columns, 1):
+        max_len = len(str(header))
+        for devotee in devotees:
+            value = to_cell_value(devotee.get(field))
+            max_len = max(max_len, len(str(value)))
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_idx)].width = min(max_len + 2, 50)
+
+    ws.freeze_panes = 'A2'
+
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"devotees_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@login_required
 def upload_devotees(request):
     from .forms import DevoteeUploadForm
     from .utils import process_excel_file
